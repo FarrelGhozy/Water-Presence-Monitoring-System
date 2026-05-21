@@ -1,0 +1,629 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf-8]{inputenc}
+\usepackage[indonesian]{babel}
+\usepackage[margin=1in]{geometry}
+\usepackage{xcolor}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{tabularray}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{multirow}
+\usepackage{booktabs}
+
+% Color definitions
+\definecolor{samsungblue}{RGB}{28, 106, 187}
+\definecolor{lightgray}{RGB}{240, 240, 240}
+\definecolor{darkgray}{RGB}{100, 100, 100}
+
+% Header setup
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+% Custom commands
+\newcommand{\sectionbox}[1]{%
+  \colorbox{samsungblue}{%
+    \parbox{\textwidth}{%
+      \textcolor{white}{\large\bfseries #1}%
+    }%
+  }%
+}
+
+\newcommand{\subsectionbox}[1]{%
+  \textbf{\large #1}\\[0.3cm]
+}
+
+\title{}
+\author{}
+\date{}
+
+\begin{document}
+
+% ============================================================================
+% TITLE PAGE
+% ============================================================================
+\thispagestyle{empty}
+\vspace*{1cm}
+
+\begin{center}
+  \huge\textbf{PROPOSAL IDE/CONCEPT PAPER}\\[0.5cm]
+  \huge\textbf{SAMSUNG SOLVE FOR TOMORROW 2026}\\[2cm]
+\end{center}
+
+\normalsize
+
+Tulis ide solusi yang ingin Anda ajukan dengan mengisi kolom-kolom di bawah secara lengkap dan spesifik! Jika ada pertanyaan, silakan hubungi di WhatsApp Enrico (6289677878563) atau di email: \texttt{sft2026@dibimbing.id} atau dapat bergabung ke community Telegram Samsung Solve for Tomorrow 2026.
+
+\vspace{1.5cm}
+
+\begin{tabularx}{\textwidth}{l X}
+  \textbf{Nama Tim} & : \textit{Hamba Tuhan Yang Maha Esa} \\[0.5cm]
+  \textbf{Nama Sekolah/Perguruan Tinggi} & : \textit{Universitas Darussalam Gontor (UNIDA Gontor)} \\[0.5cm]
+  \textbf{Nama Ketua} & : \textit{Farrel Ghozy Affifudin} \\[0.5cm]
+  \textbf{Nama Anggota 1} & : \textit{(Anggota Tim 1)} \\[0.5cm]
+  \textbf{Nama Anggota 2} & : \textit{(Anggota Tim 2)} \\[0.5cm]
+\end{tabularx}
+
+\newpage
+
+% ============================================================================
+% SECTION 1: JUDUL PROJEK/IDE
+% ============================================================================
+\sectionbox{1. JUDUL PROJEK/IDE}
+
+\vspace{0.5cm}
+
+\textbf{\Large Water Presence Monitoring System: Citizen Science + AI-Powered Remote Sensing untuk Deteksi dan Monitoring Real-Time Keberadaan Air Permukaan}
+
+\vspace{1cm}
+
+% ============================================================================
+% SECTION 2: TEMA/BIDANG
+% ============================================================================
+\sectionbox{2. TEMA/BIDANG YANG DIPILIH}
+
+\vspace{0.5cm}
+
+\textbf{Sustainability \& Environment}
+
+\vspace{1cm}
+
+% ============================================================================
+% SECTION 3: LATAR BELAKANG
+% ============================================================================
+\sectionbox{3. LATAR BELAKANG}
+
+\vspace{0.5cm}
+
+\subsectionbox{Konteks Masalah (Data \& Fakta)}
+
+Indonesia sebagai negara dengan geografis kepulauan yang luas menghadapi tantangan serius dalam monitoring dan deteksi sumber daya air. Berdasarkan data dari Kementerian Pekerjaan Umum dan Perumahan Rakyat (PUPR), akses ke data water resources yang akurat dan real-time masih terbatas, terutama di daerah terpencil dan pasca-bencana. 
+
+Data menunjukkan:
+\begin{itemize}
+  \item Lebih dari 40\% daerah Indonesia masih kesulitan dalam pemetaan sumber daya air permukaan
+  \item Survei manual untuk mendeteksi keberadaan air di area bencana memakan waktu 3-5 hari
+  \item Satelit konvensional (Landsat) memiliki resolusi 30m, tidak cukup untuk area lokal
+  \item Biaya survey ground-based berkisar 5-10 juta rupiah per lokasi
+  \item Tidak ada platform yang mengintegrasikan citizen observations dengan data satelit secara real-time
+\end{itemize}
+
+\subsectionbox{Riset Pengguna (Persona \& Kutipan Wawancara)}
+
+\textbf{Persona 1: Disaster Response Manager}
+\begin{itemize}
+  \item Profil: Koordinator bencana di Badan Nasional Penanggulangan Bencana (BNPB)
+  \item Tantangan: ``Kami butuh informasi cepat tentang area yang tergenang untuk prioritas evakuasi, tapi data satelit lambat dan mahal''
+  \item Kebutuhan: Pemetaan real-time area tergenang dalam hitungan menit, bukan hari
+\end{itemize}
+
+\textbf{Persona 2: Water Resource Manager}
+\begin{itemize}
+  \item Profil: Petugas dinas pertanian di kabupaten rural
+  \item Tantangan: ``Susah monitor ketersediaan air di area pertanian kami yang luas tanpa data akurat''
+  \item Kebutuhan: Indikator ketersediaan air permukaan per musim untuk perencanaan irigasi
+\end{itemize}
+
+\textbf{Persona 3: Environmental Scientist}
+\begin{itemize}
+  \item Profil: Peneliti di universitas yang fokus pada environmental monitoring
+  \item Tantangan: ``Data satellite mahal dan jarang tersedia cloud-free, perlu alternative untuk baseline assessment''
+  \item Kebutuhan: Tool yang accessible dan dapat di-crowdsource untuk citizen science
+\end{itemize}
+
+\subsectionbox{Pernyataan Masalah Inti (How Might We...)}
+
+\textbf{``How might we create an accessible, real-time water presence detection system that combines smartphone observations with satellite validation and AI analysis, enabling rapid assessment for disaster response, agricultural planning, and environmental monitoring?''}
+
+\vspace{1cm}
+
+% ============================================================================
+% SECTION 4: TARGET PENGGUNA
+% ============================================================================
+\sectionbox{4. TARGET PENGGUNA}
+
+\vspace{0.5cm}
+
+\begin{tabularx}{\textwidth}{l X}
+  \textbf{Primary Users} & Petugas disaster response (BNPB), Water resource managers (dinas pertanian/PUPR), Environmental scientists \\[0.5cm]
+  \textbf{Secondary Users} & General public, NGO untuk environmental monitoring, Mahasiswa untuk citizen science \\[0.5cm]
+  \textbf{Geographic Scope} & Indonesia, khususnya daerah rural \& disaster-prone areas \\[0.5cm]
+  \textbf{Usia/Demografis} & 20-55 tahun, tech-literate, dengan access ke smartphone \\[0.5cm]
+  \textbf{Volume Pengguna} & MVP: 100-500 pengguna; Scale-up: 5,000+ pengguna dalam 1 tahun \\
+\end{tabularx}
+
+\vspace{1cm}
+
+% ============================================================================
+% SECTION 5: DESKRIPSI IDE
+% ============================================================================
+\sectionbox{5. DESKRIPSI IDE}
+
+\vspace{0.5cm}
+
+\subsectionbox{A. Konsep Solusi: Penjelasan Umum Ide}
+
+\textbf{Water Presence Monitoring System} adalah platform terintegrasi yang menggabungkan tiga sumber data untuk memberikan penilaian keberadaan air permukaan secara real-time:
+
+\begin{enumerate}
+  \item \textbf{Citizen Observations (Crowdsourced)}: Pengguna submit foto lokasi + GPS menggunakan smartphone
+  \item \textbf{AI Vision Analysis (Gemini 2.0)}: Analisis visual untuk mendeteksi kondisi tanah, kehadiran air, jenis vegetasi
+  \item \textbf{Satellite Validation (Sentinel-2 via Google Earth Engine)}: Perhitungan NDWI (Normalized Difference Water Index) untuk validasi keberadaan air permukaan
+  \item \textbf{Weather Data Integration (BMKG API)}: Korelasi dengan data cuaca untuk konteks kondisi air
+\end{enumerate}
+
+\textbf{Keluaran sistem}: Confidence score 0-100\% yang menunjukkan likelihood keberadaan air, disertai dengan sumber data dan visualisasi di peta interaktif.
+
+\textbf{Waktu processing}: 10-15 detik per observation (parallel processing)
+
+\subsectionbox{B. Rancangan Awal: User Flow dengan Penjelasan}
+
+\vspace{0.5cm}
+
+\textbf{\underline{User Flow Diagram:}}
+
+\begin{verbatim}
+┌─────────────────────────────────────────────────────────┐
+│ USER OPENS APP & CLICKS "SUBMIT OBSERVATION"            │
+└────────────────────┬────────────────────────────────────┘
+                     │
+        ┌────────────┴────────────┐
+        │                         │
+   Location GPS        Camera Capture
+   (Auto-detect)       (Photo Preview)
+        │                         │
+        └────────────┬────────────┘
+                     │
+         FRONTEND → BACKEND API
+              (POST /observations)
+                     │
+        ┌────────────┴───────────────────────┐
+        │                                    │
+   PARALLEL PROCESSING (10-15 sec):
+   ├─ Gemini Vision API (2-5s)
+   │  → soil type, water presence, confidence
+   │
+   ├─ Google Earth Engine (5-30s, cached)
+   │  → NDWI calculation, cloud cover check
+   │
+   └─ BMKG Weather API (1-3s, optional)
+        → temperature, humidity, rainfall
+                     │
+        COMPARISON ENGINE
+   ├─ Merge results
+   ├─ Calculate final confidence score (0-100%)
+   ├─ Generate verdict (High/Medium/Low/None)
+   ├─ Detect anomalies
+                     │
+        DISPLAY TO USER
+   ├─ Confidence gauge
+   ├─ Water presence verdict
+   ├─ Map with satellite overlay
+   ├─ Risk indicators
+   └─ Historical comparison
+\end{verbatim}
+
+\vspace{0.5cm}
+
+\textbf{\underline{Hubungan dengan Riset Pengguna:}}
+
+\begin{itemize}
+  \item \textbf{Disaster Response Manager}: Mendapat alert + peta real-time dalam 15 detik untuk rapid assessment
+  \item \textbf{Water Resource Manager}: Dapat track ketersediaan air per lokasi dengan confidence metrics untuk planning
+  \item \textbf{Environmental Scientist}: Dapat participate dalam citizen science dengan transparent methodology
+\end{itemize}
+
+\subsectionbox{C. Fitur Utama Aplikasi}
+
+\begin{enumerate}
+  \item \textbf{Observation Submission Form}
+  \begin{itemize}
+    \item GPS auto-detection dengan opsi manual adjustment
+    \item Native camera capture dengan real-time preview
+    \item Optional: time window untuk satellite data lookback
+  \end{itemize}
+
+  \item \textbf{Results Dashboard (4-Panel Layout)}
+  \begin{itemize}
+    \item Panel 1: Photo display dengan metadata
+    \item Panel 2: Analysis summary (confidence gauge 0-100\%, water presence verdict, risk indicators)
+    \item Panel 3: Interactive map (location marker, satellite NDWI overlay, historical trend chart)
+    \item Panel 4: Detailed breakdown (Gemini analysis, satellite sources, weather context)
+  \end{itemize}
+
+  \item \textbf{Explore/Map View}
+  \begin{itemize}
+    \item Interactive map dengan clustering observations
+    \item Heatmap overlay (water presence probability per region)
+    \item Filters: date range, confidence threshold, water presence level
+    \item Regional statistics \& trends
+  \end{itemize}
+
+  \item \textbf{Methodology \& About}
+  \begin{itemize}
+    \item How the system works (transparent explanation)
+    \item Limitations \& disclaimers (honest about 60-80\% accuracy)
+    \item Data sources attribution
+  \end{itemize}
+\end{enumerate}
+
+\subsectionbox{D. Rancangan Teknis Singkat}
+
+\begin{tabularx}{\textwidth}{l X}
+  \textbf{Frontend} & React 19 + Vite + Tailwind CSS + Leaflet.js \\[0.3cm]
+  \textbf{Backend} & Bun runtime + ElysiaJS framework \\[0.3cm]
+  \textbf{AI/Vision} & Google Gemini 2.0 Flash (photo analysis) \\[0.3cm]
+  \textbf{Satellite} & Google Earth Engine (Sentinel-2 NDWI) \\[0.3cm]
+  \textbf{Database} & MongoDB (observations) + PostgreSQL (time-series) \\[0.3cm]
+  \textbf{Cache/Queue} & Redis + Bull (async job processing) \\[0.3cm]
+  \textbf{Deployment} & Vercel (frontend) + Railway (backend) \\
+\end{tabularx}
+
+\vspace{1cm}
+
+% ============================================================================
+% SECTION 6: TUJUAN
+% ============================================================================
+\sectionbox{6. TUJUAN}
+
+\vspace{0.5cm}
+
+\begin{enumerate}
+  \item \textbf{Percepatan Deteksi}: Mengurangi waktu deteksi keberadaan air dari 3-5 hari (survey manual) menjadi 10-15 detik (sistem otomatis)
+  
+  \item \textbf{Aksesibilitas}: Membangun tool yang accessible via smartphone saja, tanpa butuh expertise khusus atau peralatan mahal
+  
+  \item \textbf{Akurasi}: Mencapai confidence score yang reliable (60-80\% F1-score) melalui validasi multi-sumber
+  
+  \item \textbf{Skalabilitas}: Menghasilkan platform yang dapat scale ke ribuan pengguna dan observasi per hari
+  
+  \item \textbf{Transparansi}: Provide confidence metrics \& methodology disclosure sehingga pengguna understand keterbatasan sistem
+  
+  \item \textbf{Dampak Sosial}: Mendukung disaster response, agricultural planning, dan environmental monitoring di Indonesia
+\end{enumerate}
+
+\vspace{1cm}
+
+% ============================================================================
+% SECTION 7: INOVASI
+% ============================================================================
+\sectionbox{7. INOVASI}
+
+\vspace{0.5cm}
+
+\subsectionbox{Keunikan Ide dibanding Solusi Existing:}
+
+\begin{enumerate}
+  \item \textbf{Multi-Source Validation Architecture}
+  \begin{itemize}
+    \item Existing tools: Gunakan single source (satellite saja, atau photo saja)
+    \item Kami: Kombinasi 3 sumber (Gemini Vision + Sentinel-2 NDWI + Weather) → lebih akurat \& reliable
+  \end{itemize}
+
+  \item \textbf{Real-Time Citizen Science Platform}
+  \begin{itemize}
+    \item Existing: Citizen observations biasa dikumpul manual atau via form email (lambat)
+    \item Kami: Smartphone app dengan instant processing \& automated satellite validation
+  \end{itemize}
+
+  \item \textbf{Confidence Scoring \& Transparency}
+  \begin{itemize}
+    \item Existing: Output biner (ada/tidak ada air)
+    \item Kami: Confidence score 0-100\% dengan breakdown sumber data, biar user understand reliability
+  \end{itemize}
+
+  \item \textbf{Integrated AI + Satellite Processing}
+  \begin{itemize}
+    \item Existing: Satellite processing biasa butuh expertise (GIS, remote sensing)
+    \item Kami: Automated via Google Earth Engine API + Gemini Vision, accessible untuk non-expert
+  \end{itemize}
+
+  \item \textbf{Cost-Effective Solution}
+  \begin{itemize}
+    \item Existing: Professional survey: 5-10M per lokasi, Satellite imagery: 1-5M per order
+    \item Kami: Smartphone camera (gratis) + APIs dengan free/cheap tier → accessible untuk community-level
+  \end{itemize}
+\end{enumerate}
+
+\vspace{1cm}
+
+% ============================================================================
+% SECTION 8: DAMPAK IDE/PROYEK
+% ============================================================================
+\sectionbox{8. DAMPAK IDE/PROYEK}
+
+\vspace{0.5cm}
+
+\subsectionbox{Dampak Langsung (Direct Impact):}
+
+\begin{enumerate}
+  \item \textbf{Disaster Response} (BNPB, disaster managers)
+  \begin{itemize}
+    \item Reduce assessment time dari hari menjadi menit
+    \item Better spatial mapping untuk prioritasi evakuasi
+    \item Estimated: Bisa accelerate response 2-3 hari lebih cepat per event
+  \end{itemize}
+
+  \item \textbf{Agricultural Planning} (Dinas Pertanian, farmers)
+  \begin{itemize}
+    \item Real-time indicator ketersediaan air untuk irrigation planning
+    \item Reduce crop loss dari drought via early detection
+    \item Estimated: +10-15\% yield improvement di dry seasons
+  \end{itemize}
+
+  \item \textbf{Environmental Monitoring} (Researchers, NGOs)
+  \begin{itemize}
+    \item Baseline data collection untuk water resources assessment
+    \item Crowdsourced validation untuk environmental projects
+    \item Estimated: 5x lebih banyak data points dibanding traditional surveys
+  \end{itemize}
+\end{enumerate}
+
+\subsectionbox{Dampak SDGs (Sustainable Development Goals):}
+
+\begin{itemize}
+  \item \textbf{SDG 6 (Clean Water \& Sanitation)}: Improve monitoring \& management of water resources
+  \item \textbf{SDG 13 (Climate Action)}: Support disaster preparedness \& response
+  \item \textbf{SDG 15 (Life on Land)}: Environmental monitoring untuk conservation
+\end{itemize}
+
+\subsectionbox{Dampak Jangka Panjang:}
+
+\begin{itemize}
+  \item Foundation untuk integrated water resource management system di Indonesia
+  \item Scalable model untuk citizen science platform di bidang environment
+  \item Potential integration dengan government agencies (BNPB, PUPR, Kementan)
+\end{itemize}
+
+\vspace{1cm}
+
+% ============================================================================
+% SECTION 9: ASPEK STEM
+% ============================================================================
+\sectionbox{9. ASPEK STEM}
+
+\vspace{0.5cm}
+
+\begin{tabularx}{\textwidth}{l X}
+  \textbf{Science} & 
+    Aplikasi ilmu Hydrology \& Remote Sensing: NDWI (Normalized Difference Water Index) untuk deteksi water bodies dari multispectral imagery. Environmental science principles untuk data interpretation. \\[0.5cm]
+  
+  \textbf{Technology} & 
+    Full-stack development: React (frontend), Bun/ElysiaJS (backend), APIs (Gemini, Google Earth Engine, BMKG). Cloud infrastructure (Vercel, Railway). Real-time data processing via Bull queue system. \\[0.5cm]
+  
+  \textbf{Engineering} & 
+    Software engineering: API design, database architecture (MongoDB + PostgreSQL), microservices (Python worker untuk GEE). System integration: linking 3+ external APIs seamlessly. UI/UX design untuk accessibility di mobile. \\[0.5cm]
+  
+  \textbf{Mathematics} & 
+    Confidence score algorithm: weighted averaging dari multiple data sources. NDWI formula: (Green - NIR) / (Green + NIR). Statistical analysis untuk accuracy metrics (precision, recall, F1-score). \\
+\end{tabularx}
+
+\vspace{1cm}
+
+% ============================================================================
+% SECTION 10: KONTRIBUSI AI
+% ============================================================================
+\sectionbox{10. KONTRIBUSI AI}
+
+\vspace{0.5cm}
+
+\subsectionbox{Peran AI dalam Sistem:}
+
+\begin{enumerate}
+  \item \textbf{Gemini 2.0 Vision API (Photo Analysis)}
+  \begin{itemize}
+    \item Input: Smartphone photo dari user
+    \item Processing: Visual analysis untuk detect:
+    \begin{itemize}
+      \item Soil type (clay, sandy, loam, rocky, peat)
+      \item Water presence (high/medium/low/none)
+      \item Surface conditions (wet, damp, dry, flooded)
+      \item Vegetation type \& health
+      \item Anomalies \& concerns
+    \end{itemize}
+    \item Output: JSON structured response dengan confidence score 0-100
+    \item Cost: ~USD 0.0008 per image (free tier: 50k images/month)
+  \end{itemize}
+
+  \item \textbf{Adaptive Processing Pipeline}
+  \begin{itemize}
+    \item AI-driven decision logic untuk merging results dari 3 sources
+    \item Automatic anomaly detection (e.g., high cloud cover flagged)
+    \item Confidence score calculation dengan weighted formula
+  \end{itemize}
+
+  \item \textbf{Pattern Recognition}
+  \begin{itemize}
+    \item Historical trend detection per region
+    \item Seasonal pattern analysis
+    \item Potential untuk future ML model training (jika ada ground truth dataset)
+  \end{itemize}
+\end{enumerate}
+
+\subsectionbox{Mengapa AI Critical:}
+
+\begin{itemize}
+  \item Manual photo analysis → tidak scalable
+  \item Gemini Vision → instant, standardized, scalable ke 1000s of photos
+  \item Automated confidence scoring → transparent, reproducible
+\end{itemize}
+
+\vspace{1cm}
+
+% ============================================================================
+% SECTION 11: SUSTAINABILITY
+% ============================================================================
+\sectionbox{11. SUSTAINABILITY}
+
+\vspace{0.5cm}
+
+\subsectionbox{Strategi Keberlanjutan (Sustainability Strategy):}
+
+\begin{enumerate}
+  \item \textbf{Business Model}
+  \begin{itemize}
+    \item \textbf{Freemium}: Observations \& basic results gratis untuk public users
+    \item \textbf{Government Partnerships}: Premium subscription untuk BNPB, Dinas Pertanian, PUPR (dengan dedicated support, advanced analytics)
+    \item \textbf{NGO Programs}: Discounted rates untuk research \& conservation projects
+    \item Estimated revenue: IDR 500M - 1B per tahun di year 2-3
+  \end{itemize}
+
+  \item \textbf{Technical Sustainability}
+  \begin{itemize}
+    \item Serverless architecture (Vercel, Railway) → auto-scaling, minimal ops overhead
+    \item Open-source components (React, Leaflet) → community support
+    \item API-first design → easy integration dengan third-party tools
+    \item Regular updates based on user feedback \& technology trends
+  \end{itemize}
+
+  \item \textbf{Community Engagement}
+  \begin{itemize}
+    \item Citizen science program: reward active contributors (badges, leaderboards)
+    \item Educational outreach: training workshops untuk disaster managers, farmers
+    \item Partnership dengan universitas untuk research validation
+    \item Transparent data sharing untuk credibility
+  \end{itemize}
+
+  \item \textbf{Impact Measurement}
+  \begin{itemize}
+    \item Monthly KPIs: observation count, unique users, accuracy metrics
+    \item Quarterly user satisfaction surveys
+    \item Annual impact report: lives helped, disaster response time reduced, etc.
+  \end{itemize}
+
+  \item \textbf{Data Governance}
+  \begin{itemize}
+    \item Open data: All observations available via public API (CC-BY license)
+    \item Privacy-first: No personal data collected beyond email for authentication
+    \item Data retention: 5 years on MongoDB, archival to cold storage after
+  \end{itemize}
+\end{enumerate}
+
+\vspace{1cm}
+
+% ============================================================================
+% PAGE 2: ADDITIONAL SECTIONS
+% ============================================================================
+\newpage
+
+\sectionbox{INFORMASI TAMBAHAN}
+
+\vspace{0.5cm}
+
+\subsectionbox{A. Timeline Pengembangan (Development Roadmap)}
+
+\begin{tabularx}{\textwidth}{l l X}
+  \textbf{Minggu 1-2} & Foundation & Setup environment, frontend form, basic backend API \\[0.3cm]
+  \textbf{Minggu 2-3} & Integration & Connect Gemini Vision, Google Earth Engine, BMKG API \\[0.3cm]
+  \textbf{Minggu 3-4} & Features & Analysis engine, results page, map visualization \\[0.3cm]
+  \textbf{Minggu 4} & Validation \& Deploy & Test dengan 5-10 real observations, deploy to production \\
+\end{tabularx}
+
+\vspace{0.5cm}
+
+\subsectionbox{B. Tech Stack Summary}
+
+\begin{tabularx}{\textwidth}{l X}
+  \textbf{Frontend} & React 19 + Vite + Tailwind CSS + Leaflet.js \\[0.3cm]
+  \textbf{Backend} & Bun + ElysiaJS \\[0.3cm]
+  \textbf{Database} & MongoDB Atlas + PostgreSQL (Supabase) + Redis (Upstash) \\[0.3cm]
+  \textbf{AI/APIs} & Gemini 2.0, Google Earth Engine, BMKG API \\[0.3cm]
+  \textbf{Deployment} & Vercel (frontend) + Railway (backend) \\[0.3cm]
+  \textbf{Monitoring} & Sentry (error tracking) + Winston (logging) \\
+\end{tabularx}
+
+\vspace{0.5cm}
+
+\subsectionbox{C. Accuracy \& Validation}
+
+\begin{itemize}
+  \item \textbf{Expected Accuracy}: F1-score 0.65-0.80 untuk MVP (reasonable untuk citizen science)
+  \item \textbf{Validation Method}: Compare system output vs ground truth untuk 5-10 locations
+  \item \textbf{Limitations}: Cloud cover (30-50\% images unusable), satellite data lag (3-5 days), phone photo quality dependency
+  \item \textbf{Transparency}: Confidence score breakdown shown to user, limitations clearly stated
+\end{itemize}
+
+\vspace{0.5cm}
+
+\subsectionbox{D. Competitive Analysis}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l c c c c}
+  \toprule
+  \textbf{Feature/Kriteria} & \textbf{Kami} & \textbf{Satellite Only} & \textbf{Photo Only} & \textbf{Manual Survey} \\
+  \midrule
+  Real-time & ✓ & ✗ (days) & ✓ & ✗ (days) \\
+  Accessible & ✓ (smartphone) & ✗ ($$) & ✓ & ✗ (expert needed) \\
+  Scalable & ✓ & ✗ & ✓ & ✗ \\
+  Validated & ✓ (multi-source) & ✓ & ⚠️ (single) & ✓ \\
+  Cost/observation & Rp 0 & 1-5M & 0 & 5-10M \\
+  Accuracy & 60-80\% & 70-85\% & 40-60\% & 95\%+ \\
+  \bottomrule
+\end{tabularx}
+\end{center}
+
+\vspace{0.5cm}
+
+\subsectionbox{E. Risk Mitigation}
+
+\begin{itemize}
+  \item \textbf{API Reliability}: Fallback mechanisms jika Gemini/GEE unavailable, continue dengan partial data
+  \item \textbf{Accuracy Variance}: Transparent confidence scoring, tidak claim 100\% accuracy
+  \item \textbf{Adoption}: Partnership dengan BNPB/NGOs untuk early users, free tier untuk incentivize adoption
+  \item \textbf{Scaling}: Serverless architecture auto-scales, caching strategy reduces API costs
+\end{itemize}
+
+\vspace{0.5cm}
+
+\subsectionbox{F. References \& Inspiration}
+
+\begin{itemize}
+  \item NDWI methodology: McFeeters, S. K. (1996). The use of NDWI for discrimination of standing water from soil and vegetation
+  \item Citizen science frameworks: Bonney, R., et al. (2009). Citizen Science: A Tool for Integrating Studies of Ecosystems and Human Well-being
+  \item Self-Determination Theory (SDT): Ryan, R. M., \& Deci, E. L. (2000). Intrinsic and Extrinsic Motivations
+  \item Google Earth Engine: Gorelick et al. (2017). Google Earth Engine: Planetary-scale geospatial analysis for everyone
+  \item Sentinel-2 Band Configuration: ESA Copernicus documentation
+\end{itemize}
+
+\vspace{1.5cm}
+
+% ============================================================================
+% FOOTER
+% ============================================================================
+\begin{center}
+  \textit{Proposal ini disusun dengan fokus pada aksesibilitas, transparansi, dan dampak sosial untuk mendukung tujuan pembangunan berkelanjutan di Indonesia.}
+\end{center}
+
+\vspace{1cm}
+
+\begin{flushright}
+  \textbf{Tim Hamba Tuhan Yang Maha Esa} \\
+  \textbf{UNIDA Gontor} \\
+  Mei 2026
+\end{flushright}
+
+\end{document}
