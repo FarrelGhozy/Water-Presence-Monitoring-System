@@ -1,4 +1,5 @@
 
+# LaTeX build
 Rancangan-Proposal.aux
 Rancangan-Proposal.bbl
 Rancangan-Proposal.blg
@@ -7,3 +8,19 @@ Rancangan-Proposal.out
 Rancangan-Proposal.fls
 Rancangan-Proposal.fdb_latexmk
 Rancangan-Proposal.synctex.gz
+
+# Backend
+backend/node_modules/
+backend/.env
+backend/uploads/
+
+# Python
+__pycache__/
+*.pyc
+python-worker/.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
