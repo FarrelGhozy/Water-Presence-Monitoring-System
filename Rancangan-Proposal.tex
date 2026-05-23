@@ -69,7 +69,7 @@ Tulis ide solusi yang ingin Anda ajukan dengan mengisi kolom-kolom di bawah seca
 
 \begin{tabularx}{\textwidth}{|l|X|}
   \hline
-  \textbf{Nama Tim} & : \textit{Hamba Tuhan Yang Maha Esa} \\[0.3cm]
+  \textbf{Nama Tim} & : \textit{Berkat ILLAHI} \\[0.3cm]
   \textbf{Nama Sekolah/Perguruan Tinggi} & : \textit{Universitas Darussalam Gontor (UNIDA Gontor)} \\[0.3cm]
   \textbf{Nama Ketua} & : \textit{Farrel Ghozy Affifudin} \\[0.3cm]
   \textbf{Nama Anggota 1} & : \textit{(Fatih Jawwad Al-mumtaz)} \\[0.3cm]
@@ -245,19 +245,15 @@ TAMPILKAN KE USER
 \subsectionbox{C. Fitur Utama Aplikasi}
 
 \begin{enumerate}
-  \item \textbf{Observation Submission Form}
+  \item \textbf{Observation Submission}
   \begin{itemize}
-    \item GPS auto-detection dengan opsi manual adjustment via drag pada map
-    \item Native camera capture dengan real-time preview dan kompresi otomatis (target: max 2MB, 1920x1440)
+    \item GPS auto-detection dengan opsi manual adjustment via klik pada map
     \item Opsional: time window selector untuk satellite data lookback
-    \item Client-side image compression (ImageCompression.js) untuk mengurangi ukuran upload
-    \item SHA256 hashing untuk deduplikasi foto
   \end{itemize}
 
-  \item \textbf{Results Dashboard (4-Panel Layout)}
+  \item \textbf{Results Dashboard (3-Panel Layout)}
   \begin{itemize}
-    \item Panel 1: Photo display dengan metadata lokasi dan timestamp
-    \item Panel 2: AI Analysis summary — confidence gauge 0-100\%, natural language assessment dari Gemini, water presence verdict, risk indicators
+    \item Panel 1: AI Analysis summary — confidence gauge 0-100\%, natural language assessment dari Gemini, water presence verdict, risk indicators
     \item Panel 3: Interactive map — Peta Indonesia choropleth (warna per provinsi berdasarkan water index), marker lokasi, satellite overlay (SAR water mask)
     \item Panel 4: Satellite data breakdown — Detail dari setiap sumber satelit (SAR, NDWI, CHIRPS, soil, elevation) yang digunakan Gemini untuk analisis
   \end{itemize}
@@ -320,7 +316,7 @@ Backend panggil 3 service:
 \begin{tabularx}{\textwidth}{|l|X|}
   \hline
   \textbf{MongoDB (Single Database)} & Satu database untuk semua data: \\[0.2cm]
-  & - \texttt{observations}: userId, lokasi (lat/lng), photoUrl, timestamp, status (pending/processing/completed/error) \\[0.2cm]
+  & - \texttt{observations}: userId, lokasi (lat/lng), timestamp, status (processing/completed/error) \\[0.2cm]
   & - \texttt{satellite\_data}: observationId, sar\_water\_mask, ndwi\_value, chirps\_rainfall, soil\_type, elevation \\[0.2cm]
   & - \texttt{gemini\_analysis}: observationId, confidence\_score, water\_presence\_assessment, natural\_language\_summary, recommendations \\[0.2cm]
   & - \texttt{regional\_index}: province, water\_index, last\_updated, observation\_count \\
@@ -335,7 +331,7 @@ Backend panggil 3 service:
   \hline
   \textbf{Method} & \textbf{Endpoint} & \textbf{Deskripsi} \\
   \hline
-  POST & /api/v1/observations & Submit observasi (foto + GPS) \\
+  POST & /api/v1/observations & Submit observasi (GPS location) \\
   GET & /api/v1/observations/:id & Detail observasi + hasil analisis \\
   GET & /api/v1/observations/:id/satellite-data & Data satelit mentah per sumber \\
   GET & /api/v1/map/indonesia & GeoJSON peta Indonesia choropleth (water index per provinsi) \\
@@ -358,7 +354,7 @@ Backend panggil 3 service:
   \textbf{Soil \& Elevation} & OpenLandMap + SRTM via GEE \\[0.2cm]
   \textbf{Geospatial} & Google Earth Engine (platform integrasi semua data satelit) \\[0.2cm]
   \textbf{Database} & MongoDB Atlas (observations \& analysis results) \\[0.2cm]
-  \textbf{File Storage} & AWS S3 / DigitalOcean Spaces (image storage) \\[0.2cm]
+  \textbf{Caching} & Redis / in-memory cache untuk data satelit (7 hari TTL) \\[0.2cm]
   \textbf{Monitoring} & Sentry (error tracking) + Winston (logging) \\[0.2cm]
   \textbf{Deployment} & Vercel (frontend) + Railway (backend + Python worker) \\
   \hline
@@ -378,7 +374,7 @@ Backend panggil 3 service:
 
   \item \textbf{Aksesibilitas}: Membangun tool yang accessible via smartphone saja, tanpa butuh expertise khusus atau peralatan mahal
 
-  \item \textbf{Akurasi}: Mencapai confidence score yang reliable (F1-score 0.65-0.80) melalui validasi multi-sumber (AI vision + satellite + weather)
+  \item \textbf{Akurasi}: Mencapai confidence score yang reliable (F1-score 0.65-0.80) melalui validasi multi-sumber (SAR radar + satellite optis + weather)
 
   \item \textbf{Skalabilitas}: Menghasilkan platform yang dapat scale ke ribuan pengguna dan observasi per hari dengan serverless architecture
 
@@ -399,7 +395,7 @@ Backend panggil 3 service:
 \subsectionbox{Keunikan Ide dibanding Solusi Existing:}
 
 \begin{enumerate}
-  \item \textbf{Multi-Source Satellite Analysis (Bukan Sekadar Foto)}
+  \item \textbf{Multi-Source Satellite Analysis (Bukan Satu Sumber)}
   \begin{itemize}
     \item Existing tools: Analisis berdasarkan foto saja, atau satu sumber satelit
     \item Kami: Kombinasi 5+ sumber data satelit (SAR, optis, rainfall, soil, elevasi) via GEE — lebih akurat dan objektif
@@ -496,10 +492,10 @@ Backend panggil 3 service:
     Aplikasi ilmu Hydrology \& Remote Sensing: NDWI (Normalized Difference Water Index) = (Green - NIR) / (Green + NIR) menggunakan Sentinel-2 band B3 (Green) dan B8 (NIR) untuk deteksi water bodies dari multispectral imagery. Threshold NDWI $>$ 0.3 mengindikasikan keberadaan air. Environmental science principles untuk data interpretation dan korelasi dengan data cuaca. \\[0.3cm]
   \hline
   \textbf{Technology} &
-    Full-stack modern development: React 19 + Vite (frontend), Bun/ElysiaJS (backend), Python microservice (satellite processing). Cloud infrastructure: Vercel, Railway, MongoDB Atlas, Supabase. APIs: Google Gemini Vision 2.0 Flash, Google Earth Engine, BMKG. Real-time data processing via Bull queue system dengan Redis. \\[0.3cm]
+    Full-stack modern development: React 19 + Vite (frontend), Bun/ElysiaJS (backend), Python microservice (satellite processing). Cloud infrastructure: Vercel, Railway, MongoDB Atlas, Supabase.     APIs: Google Gemini 2.0 Flash, Google Earth Engine, CHIRPS. \\[0.3cm]
   \hline
   \textbf{Engineering} &
-    Software engineering: REST API design, database architecture (MongoDB + PostgreSQL dual-database), microservices pattern (Python worker terpisah untuk GEE processing). System integration: menghubungkan 3+ external APIs secara seamless. UI/UX design untuk accessibility di mobile dengan kompresi gambar client-side dan validasi form real-time. \\[0.3cm]
+    Software engineering: REST API design, database architecture (MongoDB), microservices pattern (Python worker terpisah untuk GEE processing). System integration: menghubungkan 3+ external APIs secara seamless. UI/UX design untuk accessibility di mobile dengan validasi form real-time. \\[0.3cm]
   \hline
   \textbf{Mathematics} &
     Confidence score algorithm: weighted averaging dari multiple data sources. Formula: confidence = (0.4 \texttimes{} gemini\_conf) + (0.4 \texttimes{} satellite\_conf) + (0.2 \texttimes{} agreement\_score). NDWI formula dengan normalized difference. Statistical analysis untuk accuracy metrics (precision, recall, F1-score). Time-series analysis untuk regional trends dan anomaly detection. \\
@@ -527,7 +523,7 @@ Backend panggil 3 service:
       \item CHIRPS: curah hujan 7 hari terakhir, tren
       \item OpenLandMap: soil type classification
       \item SRTM: elevation, slope
-      \item Metadata: timestamp, lokasi (provinsi/kabupaten), foto user (sebagai referensi)
+      \item Metadata: timestamp, lokasi (provinsi/kabupaten)
     \end{itemize}
     \item Processing: Menganalisis semua data, mengidentifikasi pola, menilai konsistensi antar sumber, memberikan kesimpulan:
     \begin{itemize}
@@ -660,7 +656,7 @@ Response JSON:
     \item Open data: All observations available via public API dengan CC-BY license
     \item Privacy-first: No personal data collected beyond email (optional) untuk authentication
     \item Data retention: 5 years on MongoDB, archival to cold storage (S3 Glacier) setelahnya
-    \item Foto dihapus setelah 30 hari untuk menghemat biaya storage
+    \item Data satelit di-cache 7 hari untuk menghemat kuota GEE
   \end{itemize}
 \end{enumerate}
 
@@ -687,7 +683,7 @@ Response JSON:
 
 \textbf{Week 2: AI \& Satellite Integration (30-35 jam)}
 \begin{itemize}
-  \item Gemini Vision API: geminiService.ts wrapper, analyzePhoto job processor, error handling + retries
+  \item Gemini API: geminiService.ts wrapper untuk analisis data satelit, error handling + retries
   \item Google Earth Engine: Service account setup, Python microservice, NDWI calculation function, Redis caching (7-day TTL)
   \item Data Flow Integration: 3 parallel jobs (Gemini + GEE + BMKG), job completion check, comparison trigger
   \item Tantangan: Gemini response format (force JSON), GEE learning curve, cloud cover filtering
@@ -696,7 +692,7 @@ Response JSON:
 \textbf{Week 3: Analysis Engine \& Results Page (30-35 jam)}
 \begin{itemize}
   \item Comparison Engine: calculateConfidence() function, weighted scoring algorithm, verdict generator, anomaly detection
-  \item Results Page UI: 4-panel layout (photo, analysis summary, map, detailed breakdown), polling dengan React Query
+  \item Results Page UI: 3-panel layout (analysis summary, map, satellite breakdown), polling dengan React Query
   \item Explore/Map View: Interactive map (Leaflet), heatmap overlay, filters (date range, confidence threshold)
   \item Backend Analytics: /map/heatmap endpoint (GeoJSON), /regions/:region/stats, regional aggregation
 \end{itemize}
@@ -704,7 +700,7 @@ Response JSON:
 \textbf{Week 4: Testing, Polish \& Launch Prep (30-35 jam)}
 \begin{itemize}
   \item Validation Testing: 5-10 real observations di berbagai environment (urban, agricultural, water body, dry area, wet area)
-  \item Bug Fixes: Critical bugs, performance optimization, image compression, caching, database indices
+  \item Bug Fixes: Critical bugs, performance optimization, caching, database indices
   \item Documentation: README, API docs, methodology, limitations, setup guide, screenshots
   \item Deployment: Vercel (frontend), Railway (backend), production testing, rollback plan
 \end{itemize}
@@ -733,7 +729,7 @@ Response JSON:
   \textbf{Database} & MongoDB Atlas (observations \& analysis) + PostgreSQL Supabase (time-series + PostGIS) + Redis Upstash (cache \& queue) \\[0.2cm]
   \textbf{AI/APIs} & Gemini 2.0 Flash, Google Earth Engine, BMKG API (fallback: OpenWeather) \\[0.2cm]
   \textbf{Queue} & Bull (Redis-backed, 5 job types, retry 2x, exponential backoff, dead-letter queue) \\[0.2cm]
-  \textbf{Image Storage} & AWS S3 / DigitalOcean Spaces dengan hashed filename \\[0.2cm]
+  \textbf{Cache Layer} & Redis / in-memory cache untuk data satelit \\[0.2cm]
   \textbf{Deployment} & Vercel (frontend) + Railway (backend + Python worker) \\[0.2cm]
   \textbf{Monitoring} & Sentry (error tracking) + Winston (structured logging) + Prometheus (/metrics endpoint) \\
   \hline
@@ -746,8 +742,8 @@ Response JSON:
 \textbf{\underline{Request Lifecycle:}}
 
 \begin{enumerate}
-  \item User submits observation (location + photo) via frontend
-  \item Backend validates input (location range, photo size $<$ 5MB, file type JPEG/PNG)
+  \item User submits observation (GPS location) via frontend
+  \item Backend validates input (location range lat/lng)
   \item Observation saved ke MongoDB dengan status ``processing''
   \item Python Worker memproses Google Earth Engine — Multi-Source:
     \begin{itemize}
@@ -820,7 +816,7 @@ Sistem dirancang untuk tetap berfungsi meskipun ada komponen yang gagal:
   Sentinel-2 NDWI unavailable (awan) & Analisis tetap jalan dengan SAR + CHIRPS + soil + elevation \\
   Gemini gagal & Data satelit tetap ditampilkan mentah, tanpa natural language summary \\
   CHIRPS/Soil/Elevation unavailable & Skip source tersebut, analisis jalan dengan data yang ada \\
-  Photo terlalu besar & Client-side compression (ImageCompression.js), max 2MB setelah kompresi \\
+  GEE query timeout & Retry 2x, fallback ke data parsial \\
   \hline
 \end{tabularx}
 
@@ -829,7 +825,7 @@ Sistem dirancang untuk tetap berfungsi meskipun ada komponen yang gagal:
 \subsectionbox{E. Accuracy \& Validation Strategy}
 
 \begin{itemize}
-  \item \textbf{Expected Accuracy}: F1-score 0.75-0.90 (lebih tinggi dari pendekatan photo-based karena pakai SAR multi-sumber)
+  \item \textbf{Expected Accuracy}: F1-score 0.75-0.90 (lebih tinggi dari pendekatan single-source karena pakai SAR multi-sumber)
   \item \textbf{Validation Method}: Bandingkan output sistem vs ground truth (survei manual) di 10+ lokasi berbeda
   \item \textbf{Test Environments}:
     \begin{itemize}
@@ -857,7 +853,7 @@ Sistem dirancang untuk tetap berfungsi meskipun ada komponen yang gagal:
   \item Backend: all endpoints tested with proper error codes, rate limits configured
   \item Database: indices created, backup schedule configured (daily MongoDB dump + PostgreSQL dump)
   \item APIs: rate limits set (Gemini 50k/month, GEE quotas managed), caching configured
-  \item Security: JWT refresh mechanism working, CORS configured, file upload validation
+  \item Security: JWT refresh mechanism working, CORS configured
   \item Load test: simulate 100 simultaneous observations, monitor queue length \& response time
   \item Rollback plan: previous Docker image tagged, database snapshots available
 \end{itemize}
@@ -919,8 +915,8 @@ Sistem dirancang untuk tetap berfungsi meskipun ada komponen yang gagal:
 \textbf{Phase 4:}
 \begin{itemize}
   \item Forecasting model (predict water presence 7 days ahead)
-  \item Thermal imaging analysis (jika pengguna punya thermal cameras)
-  \item AR visualization (lihat water bodies melalui phone camera)
+  \item Thermal imaging analysis (jika tersedia)
+  \item AR visualization untuk visualisasi data
   \item Integration with drone imagery untuk higher resolution
 \end{itemize}
 
@@ -980,7 +976,7 @@ Sistem dirancang untuk tetap berfungsi meskipun ada komponen yang gagal:
 % FOOTER
 % ============================================================================
 \begin{center}
-  \textit{Proposal ini disusun dengan fokus pada aksesibilitas, transparansi, dan dampak sosial untuk mendukung tujuan pembangunan berkelanjutan di Indonesia. Sistem menggabungkan citizen science, AI vision, dan satellite remote sensing dalam satu platform terintegrasi yang accessible melalui smartphone.}
+  \textit{Proposal ini disusun dengan fokus pada aksesibilitas, transparansi, dan dampak sosial untuk mendukung tujuan pembangunan berkelanjutan di Indonesia. Sistem menggabungkan citizen science, AI analyst, dan multi-source satellite remote sensing dalam satu platform terintegrasi yang accessible melalui smartphone.}
 \end{center}
 
 \vspace{1cm}
