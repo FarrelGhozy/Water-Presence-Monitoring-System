@@ -1,0 +1,48 @@
+services:
+  mongodb:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+      interval: 10s
+      retries: 5
+
+  python-worker:
+    build:
+      context: ./python-worker
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/gee-service-account.json
+      - EARTH_ENGINE_PROJECT=water-monitor-project
+    volumes:
+      - ./python-worker:/app
+      - ./gee-service-account.json:/app/gee-service-account.json:ro
+    command: uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - BUN_ENV=development
+      - MONGODB_URI=mongodb://mongodb:27017/water-monitor-dev
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEE_WORKER_URL=http://python-worker:8000
+      - JWT_SECRET=dev-secret-change-in-prod
+    volumes:
+      - ./backend/src:/app/src
+      - backend_uploads:/app/uploads
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+volumes:
+  mongo_data:
+  backend_uploads:
