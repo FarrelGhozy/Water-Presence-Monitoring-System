@@ -24,3 +24,5 @@ python-worker/.env
 .idea/
 *.swp
 *.swo
+
+.opencode/
