@@ -51,24 +51,20 @@ docker-compose -f docker-compose.dev.yml up -d
 VITE_API_BASE=http://localhost:3000/api
 VITE_MAP_TILES=https://tile.openstreetmap.org
 
-# Backend
+# Backend (Bun)
 BUN_ENV=development
-DATABASE_URL=mongodb://localhost:27017/water-monitor-dev
-POSTGRES_URL=postgresql://user:pass@localhost:5432/water-monitor
-REDIS_URL=redis://localhost:6379
+MONGODB_URI=mongodb://localhost:27017/water-monitor-dev
+GEMINI_API_KEY=<Google AI Studio API key>
+GEE_WORKER_URL=http://localhost:8000
 
-# APIs
-GEMINI_API_KEY=<get from Google Cloud console>
-GEE_SERVICE_ACCOUNT=<JSON from Google Earth Engine>
-BMKG_API_KEY=<optional, try without first>
-
-# Auth
-JWT_SECRET=dev-secret-change-in-prod
-JWT_EXPIRY=24h
-
-# File Storage (dev: local filesystem)
+# File Storage
 STORAGE_TYPE=local
 STORAGE_PATH=./uploads
+JWT_SECRET=dev-secret-change-in-prod
+
+# Python Worker (GEE)
+GOOGLE_APPLICATION_CREDENTIALS=./gee-service-account.json
+EARTH_ENGINE_PROJECT=water-monitor-project
 ```
 
 **Database Initialization:**
@@ -130,20 +126,22 @@ water-presence/
 
 ## 2. API INTEGRATION DETAILS
 
-### 2.1 Gemini Vision Integration
+### 2.1 Gemini AI Analyst Integration (BARU)
 
-**Purpose:** Analyze smartphone photos for visual water presence, soil type, surface condition.
+**Peran BARU:** Gemini TIDAK menganalisis foto. Gemini menerima data satelit TERSTRUKTUR dari GEE dan memberikan analisis komprehensif.
 
-**Integration Point:** Backend receives photo (base64 or URL), calls Gemini, stores result.
+**Purpose:** Analyze multi-source satellite data and produce water presence assessment.
+
+**Integration Point:** Backend receives structured JSON from GEE worker, sends to Gemini, gets analysis.
 
 **API Details:**
 - **Endpoint:** `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`
-- **Authentication:** API Key (in Authorization header)
-- **Rate Limit:** 50,000 req/month free tier (plenty for hackathon)
-- **Latency:** 2-5 seconds typical
-- **Cost:** ~$0.0008 per image
+- **Authentication:** API Key
+- **Rate Limit:** 50,000 req/month free tier
+- **Latency:** 3-8 seconds
+- **Cost:** ~$0.001-0.003 per analysis (depends on input size)
 
-**Request Payload Example:**
+**Request Payload Example (kirim DATA SATELIT, bukan foto):**
 ```json
 {
   "contents": [
@@ -151,13 +149,16 @@ water-presence/
       "role": "user",
       "parts": [
         {
-          "text": "You are an environmental analyst. Analyze this water location photo. Respond ONLY as JSON with these fields: soilType, waterPresence ('high'|'medium'|'low'|'none'), confidence (0-100), surface_condition, vegetation, anomalies (array), recommendation"
+          "text": "You are a hydrology and remote sensing analyst. Analyze this satellite data..."
         },
         {
-          "inline_data": {
-            "mime_type": "image/jpeg",
-            "data": "<base64-encoded-image>"
-          }
+          "text": "SATELLITE DATA INPUT:\n" + JSON.stringify({
+            "sar": {"waterPercentage": 34.2, "backscatterMean": -18.5},
+            "ndwi": {"value": 0.42, "cloudCover": 15},
+            "chirps": {"rainfall7day_mm": 120},
+            "soil": {"type": "clay loam"},
+            "elevation": {"meters": 45}
+          })
         }
       ]
     }
@@ -166,202 +167,232 @@ water-presence/
 ```
 
 **Response Parsing:**
-- Gemini returns markdown by default, we need JSON
-- Add to prompt: "Respond ONLY in valid JSON, no markdown"
-- Parse response, extract JSON block if wrapped
-- Handle failures: timeouts, rate limits, malformed responses
+- Prompt: "Respond ONLY in valid JSON"
+- Parse JSON, extract confidence, verdict, reasoning, recommendations
+- Handle failures: retry 1x, then show raw satellite data
 
 **Implementation Strategy:**
 ```
-1. Receive photo from frontend
-2. Validate: size < 5MB, format JPEG/PNG
-3. Compress if needed (client should pre-compress)
-4. Convert to base64
-5. Call Gemini with prompt + image
-6. Parse JSON response
-7. Validate required fields present
-8. Store in MongoDB analysis_results.gemini_result
-9. Return to caller
+1. Receive structured satellite data from GEE worker
+2. Format as JSON string
+3. Send to Gemini with system prompt
+4. Parse JSON response
+5. Store in MongoDB gemini_analysis
+6. Return to frontend
 ```
 
 **Fallback/Error Handling:**
-- Timeout after 30 seconds → queue for retry
-- Rate limit → exponential backoff (1s → 2s → 4s → fail)
-- Malformed response → mark as "failed", show user error
-- Network error → retry up to 2 times, then fail gracefully
+- Timeout after 15 seconds → retry 1x
+- If Gemini fails → display raw satellite data with note "AI analysis unavailable"
 
 ---
 
-### 2.2 Google Earth Engine API Integration
+### 2.2 Google Earth Engine Multi-Source Pipeline
 
-**Purpose:** Calculate NDWI (water index) from Sentinel-2 satellite imagery.
+**Purpose:** Collect data dari 5 sumber satelit untuk dianalisis Gemini.
 
-**Challenge:** GEE is complex. Two options:
+**Architecture:** Python Worker (FastAPI) → GEE Python API → Structured JSON → Backend → Gemini
 
-**Option A: JavaScript API (Recommended for hackathon)**
-- Access via `https://earthengine.google.com/api`
-- Use `ee.initialize()` in Python or Node.js server
-- Run computations server-side, export results
+**Data Sources:**
+| Source | Type | Tembus Awan? | Fungsi |
+|--------|------|-------------|--------|
+| Sentinel-1 SAR | Radar (C-band) | ✅ **Ya** | Water mask — PRIMARY |
+| Sentinel-2 | Optical | ❌ Tidak | NDWI — SECONDARY |
+| CHIRPS | Rainfall | N/A | Konteks curah hujan |
+| OpenLandMap | Soil | N/A | Tipe tanah |
+| SRTM | DEM | N/A | Elevasi |
 
-**Option B: REST API (Easier, but limited)**
-- Simpler HTTP requests
-- Less powerful filtering/processing
-- Use for simple queries only
-
-**Recommended: Hybrid Approach**
-- Use REST API for simple NDWI calculations
-- Fall back to JavaScript API if REST insufficient
-
-**REST API Endpoint:**
-```
-POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-public/processingRequest/launch
-```
-
-**Request Body (simplified):**
-```json
-{
-  "expression": "var img = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED').filterBounds(ee.Geometry.Point([lng, lat])).filterDate(start_date, end_date).filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20)).mosaic(); var ndwi = img.normalizedDifference(['B3', 'B8']); return ndwi;",
-  "outputType": "FLOAT"
-}
-```
-
-**Better: Use Python Worker with Earth Engine Python API**
+**Python Worker — Multi-Source Pipeline:**
 
 ```python
-# In Python worker
+# python-worker/services/gee_pipeline.py
 import ee
 
-def calculate_ndwi(lat: float, lng: float, days_back: int = 3):
-    """Calculate NDWI for location"""
-    ee.Authenticate()
+def analyze_location(lat: float, lng: float):
+    """Collect all satellite data for a location"""
     ee.Initialize()
-    
     point = ee.Geometry.Point([lng, lat])
     
-    # Get Sentinel-2 imagery
+    # 1. SENTINEL-1 SAR (PRIMARY — selalu jalan)
+    sar_result = get_sar_water_mask(point)
+    
+    # 2. SENTINEL-2 NDWI (SECONDARY — jika awan rendah)
+    ndwi_result = get_ndwi_if_available(point)
+    
+    # 3. CHIRPS RAINFALL
+    chirps_result = get_chirps_rainfall(point)
+    
+    # 4. SOIL TYPE (OpenLandMap)
+    soil_result = get_soil_type(point)
+    
+    # 5. ELEVATION (SRTM)
+    elevation_result = get_elevation(point)
+    
+    return {
+        "sar": sar_result,
+        "ndwi": ndwi_result,
+        "chirps": chirps_result,
+        "soil": soil_result,
+        "elevation": elevation_result
+    }
+
+
+def get_sar_water_mask(point):
+    """Detect water using Sentinel-1 SAR (radar, tembus awan)"""
+    collection = (
+        ee.ImageCollection('COPERNICUS/S1_GRD')
+        .filterBounds(point)
+        .filterDate(
+            ee.Date.now().advance(-7, 'day'),
+            ee.Date.now()
+        )
+        .filter(ee.Filter.listContains('transmitterReceiverPolarisation', 'VH'))
+        .select('VH')
+    )
+    
+    if collection.size().getInfo() == 0:
+        return {"waterPercentage": None, "confidence": "no_data"}
+    
+    # Speckle filter + water mask
+    image = collection.median()
+    # Apply Refined Lee speckle filter
+    water_mask = image.lt(-20)  # VH < -20dB = water
+    water_pct = water_mask.reduceRegion(
+        reducer=ee.Reducer.mean(),
+        geometry=point.buffer(500),  # 500m radius
+        scale=10
+    ).get('VH').getInfo()
+    
+    backscatter = image.reduceRegion(
+        reducer=ee.Reducer.mean(),
+        geometry=point.buffer(100),
+        scale=10
+    ).get('VH').getInfo()
+    
+    confidence = "high" if water_pct is not None else "low"
+    
+    return {
+        "waterPercentage": round(water_pct * 100, 1) if water_pct else 0,
+        "backscatterMean": round(backscatter, 2) if backscatter else None,
+        "confidence": confidence
+    }
+
+
+def get_ndwi_if_available(point):
+    """NDWI from Sentinel-2 (only if low cloud cover)"""
     collection = (
         ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
         .filterBounds(point)
         .filterDate(
-            ee.Date.now().advance(-days_back, 'day'),
+            ee.Date.now().advance(-5, 'day'),
             ee.Date.now()
         )
         .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
     )
     
     if collection.size().getInfo() == 0:
-        return None  # No suitable images
+        return {"value": None, "available": False, "cloudCover": None}
     
-    # Mosaic and calculate NDWI
-    mosaic = collection.mosaic()
-    ndwi = mosaic.normalizedDifference(['B3', 'B8'])
+    image = collection.median()
+    ndwi = image.normalizedDifference(['B3', 'B8'])
     
-    # Sample at point
-    sample = ndwi.sample(point, 30).first()  # 30m resolution
-    ndwi_value = sample.get('nd').getInfo()
+    sample = ndwi.sample(point, 10).first()
+    ndwi_val = sample.get('nd').getInfo() if sample else None
     
-    # Calculate cloud cover
-    cloud_cover = (
-        collection.first()
-        .get('CLOUDY_PIXEL_PERCENTAGE')
-        .getInfo()
-    )
-    
-    image_date = (
-        collection.first()
-        .get('system:time_start')
-        .getInfo()
-    )
+    cloud = collection.first().get('CLOUDY_PIXEL_PERCENTAGE').getInfo()
     
     return {
-        'ndwi_value': ndwi_value,
-        'cloud_cover': cloud_cover,
-        'image_date': image_date,
-        'has_water': ndwi_value > 0.3  # NDWI > 0.3 = water
+        "value": round(ndwi_val, 3) if ndwi_val else None,
+        "available": ndwi_val is not None,
+        "cloudCover": cloud
+    }
+
+
+def get_chirps_rainfall(point):
+    """Rainfall from CHIRPS (7-day total)"""
+    collection = (
+        ee.ImageCollection('UCSB-CHG/CHIRPS/DAILY')
+        .filterBounds(point)
+        .filterDate(
+            ee.Date.now().advance(-7, 'day'),
+            ee.Date.now()
+        )
+    )
+    
+    total = collection.sum()
+    sample = total.sample(point, 5000).first()
+    rainfall = sample.get('precipitation').getInfo() if sample else None
+    
+    return {
+        "rainfall7day_mm": round(rainfall, 1) if rainfall else 0,
+        "trend": "increasing"  # Could calculate from time series
+    }
+
+
+def get_soil_type(point):
+    """Soil type from OpenLandMap"""
+    soil = (
+        ee.Image('OpenLandMap/SOL/SOL_GRID')
+        .sample(point, 250)
+        .first()
+    )
+    return {"type": str(soil.get('b0').getInfo()) if soil else "unknown"}
+
+
+def get_elevation(point):
+    """Elevation from SRTM"""
+    dem = ee.Image('USGS/SRTMGL1_003')
+    sample = dem.sample(point, 30).first()
+    elev = sample.get('elevation').getInfo() if sample else None
+    
+    return {
+        "meters": round(elev, 1) if elev else 0,
+        "terrain": "flat" if elev and elev < 50 else "hilly" if elev and elev < 200 else "mountainous"
     }
 ```
 
-**Integration:**
-1. Backend receives observation request
-2. Queues job: `fetch_satellite_data` with {lat, lng, days_back}
-3. Python worker processes
-4. Returns result to backend
-5. Backend stores in MongoDB
-
 **Caching Strategy:**
-- Cache result for 7 days (satellite data doesn't change)
-- Key: `sat:{lat}:{lng}`
-- Before querying GEE, check Redis
-- If cached, use cached result
-- If miss, query GEE, cache result
+- SAR + NDWI: cache 7 hari (data satelit jarang berubah)
+- CHIRPS: cache 1 hari
+- Soil + Elevation: cache 30 hari (statis)
+- Cache key: `gee:{source}:{lat}:{lng}`
+
+**Error Handling:**
+- Jika satu source gagal → skip, lanjut ke source lain
+- Jika SAR gagal → observasi tetap diproses dengan data partial
+- Jika semua GEE gagal → return error ke user, rekomendasi manual survey
 
 ---
 
-### 2.3 BMKG Weather API Integration
+### 2.3 Rainfall Data (CHIRPS via GEE — Pengganti BMKG)
 
-**Purpose:** Get weather data (temp, humidity, rainfall) at observation location.
+**Tidak pakai BMKG API.** CHIRPS (Climate Hazards Group InfraRed Precipitation with Station data) sudah tersedia di GEE dan lebih reliable.
 
-**Reality:** BMKG API is poorly documented and unreliable.
+**Data:** Curah hujan harian global (1981-sekarang), resolusi 0.05°, gratis.
 
-**Approach:**
-```
-1. Try BMKG API first (best data for Indonesia)
-2. If BMKG timeout > 5 sec, skip to fallback
-3. Fallback to OpenWeather API (costs $$$ but reliable)
-4. If both fail, continue without weather data
-```
-
-**BMKG API (Indonesian Meteorological Service):**
-- **URL:** `https://data.bmkg.go.id/DataMKG/MEWS/LatestStagePrecipitation/`
-- **Format:** GeoJSON with precipitation data
-- **Problem:** Limited, inconsistent, slow
-- **No authentication needed**
-
-**Integration:**
-```
-1. Get nearest BMKG station to (lat, lng)
-2. Query precipitation for last 24h
-3. If no data, return null
-4. Cache for 1 hour
-```
-
-**Fallback: OpenWeather API**
-- **URL:** `https://api.openweathermap.org/data/2.5/weather`
-- **Cost:** $0.01-0.05 per call (need API key)
-- **Authentication:** API key in query string
-- **Rate Limit:** 60 calls/minute free tier
-
-**Decision for MVP:**
-- Implement BMKG only (no cost)
-- Skip if unavailable (weather is nice-to-have)
-- Document as limitation: "Weather data unavailable, analysis based on satellite + photo"
-
-**Implementation:**
+**Akses via GEE (sudah include di pipeline 2.2):**
 ```python
-# Python worker
-import httpx
+# CHIRPS daily rainfall — via GEE Python API
+import ee
 
-async def get_weather(lat: float, lng: float):
-    """Fetch weather from BMKG, skip if timeout"""
-    try:
-        # Try BMKG with 5 sec timeout
-        async with httpx.AsyncClient(timeout=5) as client:
-            resp = await client.get(
-                'https://data.bmkg.go.id/DataMKG/MEWS/LatestStagePrecipitation/',
-                params={'lat': lat, 'lon': lng}
-            )
-            data = resp.json()
-            
-            if data and 'features' in data and len(data['features']) > 0:
-                feature = data['features'][0]
-                return {
-                    'rainfall_24h': feature['properties']['RH'],
-                    'source': 'bmkg'
-                }
-    except Exception as e:
-        logger.warning(f"BMKG fetch failed: {e}")
+def get_rainfall(lat, lng, days=7):
+    ee.Initialize()
+    point = ee.Geometry.Point([lng, lat])
     
-    return None  # Skip weather if BMKG fails
+    collection = (
+        ee.ImageCollection('UCSB-CHG/CHIRPS/DAILY')
+        .filterBounds(point)
+        .filterDate(
+            ee.Date.now().advance(-days, 'day'),
+            ee.Date.now()
+        )
+    )
+    
+    total = collection.sum()
+    sample = total.sample(point, 5000).first()
+    rainfall = sample.get('precipitation').getInfo()
+    
+    return {"rainfall_mm": rainfall, "days": days, "source": "chirps"}
 ```
 
 ---
@@ -383,161 +414,115 @@ async def get_weather(lat: float, lng: float):
 
 ## 3. DATA PROCESSING PIPELINE
 
-### 3.1 Job Queue Architecture (Bull)
+### 3.1 Processing Pipeline (No Queue — Sync Sequential)
 
-**Why Bull?**
-- Redis-backed task queue
-- Built-in retry logic
-- Priority support
-- Scheduled jobs (hourly aggregation)
-- Simple integration with Bun
+**Kenapa tidak pakai Bull/Redis?** Karena pipeline GEE → Gemini sudah sequential (GEE dulu, baru Gemini). Tidak perlu queue complex.
 
-**Queue Definitions:**
+**Flow:**
 
-```typescript
-// backend/src/queues/index.ts
-
-import Bull from 'bull';
-
-export const analyzePhotoQueue = new Bull('analyze_photo', {
-  redis: {
-    host: process.env.REDIS_HOST,
-    port: parseInt(process.env.REDIS_PORT)
-  }
-});
-
-export const fetchSatelliteQueue = new Bull('fetch_satellite', {
-  redis: { ... }
-});
-
-export const fetchWeatherQueue = new Bull('fetch_weather', {
-  redis: { ... }
-});
-
-export const compareAnalysisQueue = new Bull('compare_analysis', {
-  redis: { ... }
-});
-
-export const aggregateRegionalQueue = new Bull('aggregate_regional', {
-  redis: { ... },
-  defaultJobOptions: {
-    // Run hourly at :00 UTC
-    repeat: { pattern: '0 * * * *' }
-  }
-});
+```
+1. User submits → Backend saves → Calls Python Worker
+2. Python Worker → GEE Multi-Source (5 parallel queries)
+3. All GEE data collected → Sent to Gemini
+4. Gemini analyzes → Returns assessment
+5. Backend updates DB → Returns to frontend
 ```
 
-**Job Processors (Workers):**
-
+**Backend (Bun/ElysiaJS) — Orchestration:**
 ```typescript
-// backend/src/workers/analyzePhoto.ts
+// backend/src/services/pipeline.ts
 
-analyzePhotoQueue.process(async (job) => {
-  const { observationId, photoBinary } = job.data;
+async function processObservation(observationId: string) {
+  // 1. Get observation data
+  const obs = await Observation.findById(observationId);
   
-  try {
-    // Convert to base64
-    const b64 = photoBinary.toString('base64');
-    
-    // Call Gemini API
-    const result = await geminiService.analyzePhoto(b64);
-    
-    // Store in DB
-    await db.analysisResults.updateOne(
-      { observationId },
-      { $set: { gemini_result: result } }
-    );
-    
-    return { success: true };
-  } catch (error) {
-    throw error; // Bull will retry automatically
-  }
-});
-
-// Retry strategy
-analyzePhotoQueue.on('failed', (job, err) => {
-  if (job.attemptsMade < job.opts.attempts) {
-    console.log(`Retry #${job.attemptsMade} for job ${job.id}`);
-  } else {
-    // Mark observation as failed
-    db.observations.updateOne(
-      { _id: ObjectId(job.data.observationId) },
-      { $set: { status: 'error', errorMessage: err.message } }
-    );
-  }
-});
+  // 2. Call Python worker for GEE multi-source analysis
+  const satelliteData = await fetch(
+    'http://python-worker:8000/analyze',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        lat: obs.latitude,
+        lng: obs.longitude
+      })
+    }
+  ).then(r => r.json());
+  
+  // 3. Store raw satellite data
+  await SatelliteData.create({
+    observationId,
+    ...satelliteData
+  });
+  
+  // 4. Send to Gemini for analysis
+  const geminiResult = await geminiService.analyzeSatelliteData(
+    satelliteData,
+    obs
+  );
+  
+  // 5. Store Gemini analysis
+  await GeminiAnalysis.create({
+    observationId,
+    ...geminiResult
+  });
+  
+  // 6. Mark complete
+  await Observation.updateOne(
+    { _id: observationId },
+    { $set: { status: 'completed' } }
+  );
+  
+  return geminiResult;
+}
 ```
 
 ### 3.2 Execution Diagram
 
 ```
-USER SUBMITS OBSERVATION
+USER SUBMITS OBSERVATION (GPS + Photo)
         ↓
-[Backend validates, saves to DB with status="pending"]
+[Backend validates, saves with status="processing"]
         ↓
-QUEUE 3 PARALLEL JOBS:
-├── Job1: analyzePhoto(photo) → 2-5 sec
-├── Job2: fetchSatellite(lat,lng) → 5-30 sec
-└── Job3: fetchWeather(lat,lng) → 1-3 sec
-        ↓ [All 3 complete, in any order]
-QUEUE COMPARISON JOB:
-├── compareAnalysis({gemini, satellite, weather})
-├── Calculate confidence score
-├── Detect anomalies
-└── Generate recommendations
+GEE MULTI-SOURCE (Python Worker):
+├── Sentinel-1 SAR → water mask (5-15s)
+├── Sentinel-2 NDWI → if cloud < 20% (5-15s)
+├── CHIRPS → rainfall (3-5s)
+├── OpenLandMap → soil (3-5s)
+└── SRTM → elevation (3-5s)
         ↓
-[Mark observation status="completed"]
+[All data collected → structured JSON]
         ↓
-[Frontend polls, receives results]
+GEMINI AI ANALYST (3-8s):
+├── Receives: {sar, ndwi, chirps, soil, elevation}
+├── Analyzes: cross-references all sources
+├── Output: confidence + verdict + reasoning + recommendations
+        ↓
+[Status: "completed"]
+        ↓
+Frontend polls → receives full analysis + peta update
 ```
 
-### 3.3 Confidence Scoring Algorithm
+### 3.3 Confidence & Verdict (Dari Gemini, Bukan Formula)
 
-**Goal:** Single number (0-100) representing overall confidence in water presence assessment.
+**Tidak ada formula buatan sendiri.** Gemini AI menentukan confidence score berdasarkan analisis semua data satelit.
 
-**Formula:**
-
+**Yang dipertimbangkan Gemini:**
 ```
-confidence = (0.40 × gemini_conf) 
-           + (0.40 × satellite_conf) 
-           + (0.20 × agreement_score)
-
-where:
-
-  gemini_conf = confidence from Gemini (0-100) directly
-
-  satellite_conf = {
-    80  if NDWI > 0.5 (definitely water)
-    60  if NDWI 0.3-0.5 (likely water)
-    40  if NDWI 0-0.3 (maybe water)
-    20  if NDWI < 0 (probably not water)
-    0   if no satellite data available
-  }
-
-  agreement_score = {
-    100 if both high (both > 60)
-    100 if both low (both < 40)
-    50  if mixed (one high, one low)
-  }
+- SAR water percentage > 30% → strong indicator
+- NDWI > 0.3 → confirms open water (if available)
+- High rainfall + SAR water → consistent
+- Flat terrain + clay soil → supports water retention
+- All sources agree → high confidence
 ```
 
-**Water Presence Verdict:**
+**Verdict:**
 
 ```
-if confidence >= 75: "HIGH" (⚠️ warning)
-else if confidence >= 50: "MEDIUM" (⚠️ caution)
-else if confidence >= 25: "LOW" (ℹ️ info)
-else: "NONE" (✓ clear)
+confidence >= 80: "DEFINITIVE" — multiple satellites confirm water
+confidence 60-79: "PROBABLE"  — strong evidence, minor uncertainty
+confidence 30-59: "POSSIBLE"  — some indicators, not conclusive
+confidence < 30:  "UNLIKELY"  — no significant water detected
 ```
-
-**Example Scenarios:**
-
-| Scenario | Gemini | Satellite | Agreement | Final Conf | Verdict |
-|----------|--------|-----------|-----------|------------|---------|
-| Both high | 85 | 80 | 100 | 82.5 | HIGH |
-| Both low | 20 | 20 | 100 | 20 | NONE |
-| Gemini high, Sat low | 80 | 30 | 50 | 55 | MEDIUM |
-| No satellite | 70 | 0 | - | 28 | LOW |
 
 ---
 
@@ -1071,54 +1056,32 @@ function generateRecommendation(verdict: string) {
 
 ## 6. KEY DECISION RATIONALES
 
-### 6.1 Why Bun + ElysiaJS?
+### 6.1 Why Sentinel-1 SAR instead of just optical?
 
-**Decision:** Use Bun runtime + ElysiaJS framework instead of Node + Express.
+| Aspek | Sentinel-2 (Optis) | Sentinel-1 (SAR Radar) |
+|-------|-------------------|----------------------|
+| Tembus awan? | ❌ Tidak | ✅ Ya |
+| Cocok Indonesia? | ❌ 70-90% awan | ✅ Sepanjang tahun |
+| Deteksi air | NDWI vegetation/water | Backscatter rendah |
+| Resolusi | 10m | 10m |
 
-**Rationale:**
-- **Speed:** Bun is 4x faster than Node.js (Elysia benchmarks: 30k req/s vs 8k for Express)
-- **Developer experience:** You're familiar with it (you've worked with it in other projects)
-- **TypeScript native:** No transpilation needed
-- **Simplicity:** Elysia is more lightweight than Express + many plugins
+**Keputusan:** Sentinel-1 SAR sebagai **primary**, Sentinel-2 sebagai **secondary**.
 
-**Trade-offs:**
-- Smaller ecosystem (fewer third-party packages)
-- Bun still newer (released 2023), less battle-tested than Node
-- Some compatibility issues with npm packages
+### 6.2 Why Gemini as Analyst instead of Comparison Engine?
 
-**Mitigation:**
-- Lock dependencies with `bun.lockb`
-- Test thoroughly before production
-- Have Node.js fallback ready if needed
+**OLD approach:** Weighted formula comparing Gemini photo analysis vs satellite NDVI vs weather. Complex, arbitrary weights, foto tidak reliable.
 
-### 6.2 Why MongoDB + PostgreSQL?
+**NEW approach:** Satellite data is objective and consistent. Gemini (with its vast training data) acts as a human expert would — looking at all satellite evidence and making a holistic judgment.
 
-**Decision:** Use BOTH databases (not just one).
+### 6.3 Why CHIRPS instead of BMKG API?
 
-**Rationale:**
-```
-MongoDB: observations + analysis_results (flexible schema)
-├─ Rapidly evolving data structure
-├─ Nested documents (gemini_result, satellite_data, etc.)
-├─ Easy scaling (automatic sharding)
-└─ Good for hackathon (quick iterations)
+- BMKG API: unreliable, poor documentation, frequent downtime
+- CHIRPS: already available in GEE, 35+ years of data, global coverage, free
+- No additional API key needed (access via GEE)
 
-PostgreSQL: time_series + spatial (structured data)
-├─ Time-series queries (group by hour/day/week)
-├─ Geospatial queries (PostGIS extension)
-├─ Better for analytics/reporting
-└─ ACID transactions
-```
+### 6.4 Why MongoDB only (no PostgreSQL)?
 
-**Trade-offs:**
-- Complex to maintain 2 databases
-- Operational overhead
-- Data sync issues if not careful
-
-**Mitigation:**
-- MongoDB is source of truth
-- PostgreSQL is denormalized copy (eventual consistency)
-- Sync via change streams or message queue
+For MVP, single database is sufficient. Geospatial queries can be handled by GEE (not PostgreSQL). Time-series data can be stored in MongoDB with proper indexing. PostgreSQL can be added later if complex analytics needed.
 
 ---
 
@@ -1126,39 +1089,13 @@ PostgreSQL: time_series + spatial (structured data)
 
 ### 7.1 API Rate Limits & Quotas
 
-| API | Limit | Mitigation |
-|-----|-------|-----------|
-| **Gemini Vision** | 50k/month | Cache results, batch processing |
-| **Earth Engine** | Variable | GEE quotas, fallback to cached satellite |
-| **BMKG** | Unknown (unreliable) | Skip gracefully, don't block |
-| **OpenWeather** | 60/min (free) | Use sparingly, fallback to BMKG |
-
-**Implementation:**
-```typescript
-// Before calling expensive APIs, check quotas
-class APIQuotaManager {
-  private quotas = new Map();
-  
-  canCall(apiName: string): boolean {
-    const quota = this.quotas.get(apiName);
-    if (!quota) return true;
-    
-    return quota.remaining > 0;
-  }
-  
-  recordCall(apiName: string) {
-    const quota = this.quotas.get(apiName);
-    if (quota) {
-      quota.remaining--;
-      quota.lastReset = Date.now();
-    }
-  }
-  
-  reset(apiName: string) {
-    // Reset on schedule (hourly, daily, etc)
-  }
-}
-```
+| API | Limit | Biaya | Mitigation |
+|-----|-------|-------|-----------|
+| **Gemini 2.0 Flash** | 50k/month | Gratis | Cache analysis results |
+| **GEE** | 50k compute/day | Gratis (Community Tier) | Cache satellite data 7 hari |
+| **CHIRPS** (via GEE) | Unlimited | Gratis | Tidak ada rate limit |
+| **OpenLandMap** (via GEE) | Unlimited | Gratis | Cache 30 hari |
+| **SRTM** (via GEE) | Unlimited | Gratis | Cache 30 hari |
 
 ### 7.2 Data Validation & Sanitization
 

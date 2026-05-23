@@ -9,242 +9,168 @@
 
 **Timeline:** 3-4 weeks to MVP (for competition submission)
 
-**Tech Stack:** React + Vite + Bun + ElysiaJS + MongoDB + PostgreSQL + Gemini Vision + Google Earth Engine
+**Tech Stack:** React + Vite + Bun + ElysiaJS + MongoDB + GEE (SAR + NDWI + CHIRPS + Soil + DEM) + Gemini 2.0 Flash
 
 **Target Users:** Disaster responders, water resource managers, environmental scientists, public
 
 **Success Metrics:**
-- ✅ Submit observation → results in 10-15 sec
-- ✅ Confidence score 0-100%
-- ✅ Works on mobile (iOS/Android)
-- ✅ Accuracy F1 ≥ 0.70 on test dataset
+- ✅ Submit observation → GEE multi-source → Gemini analysis in 15-30 sec
+- ✅ Confidence score 0-100% from AI analyst
+- ✅ Peta Indonesia choropleth per provinsi (otomatis dari satelit)
+- ✅ Accuracy F1 ≥ 0.80 on test dataset (SAR-based lebih akurat)
 - ✅ No critical bugs on launch day
 
 ---
 
 ## TIMELINE: WEEK-BY-WEEK BREAKDOWN
 
-### WEEK 1: FOUNDATION & SETUP
+### WEEK 1: GEE SETUP & MULTI-SOURCE PIPELINE
 
-**Goal:** Get development environment working, start frontend & basic backend.
+**Goal:** GEE multi-source satellite pipeline berfungsi (SAR + NDWI + CHIRPS + Soil + Elevation).
 
 **Tasks:**
 
-**Day 1-2: Project Setup**
-- [ ] Create GitHub repo, branch strategy (main, develop, feature branches)
-- [ ] Set up monorepo structure (frontend/ + backend/ directories)
-- [ ] Initialize Bun project, install core dependencies
-- [ ] Set up Docker Compose for local database stack
-  - MongoDB
-  - PostgreSQL
-  - Redis
-- [ ] Copy environment template, configure .env for development
-- [ ] Test: `bun dev` starts backend, `npm run dev` starts frontend
+**Day 1: Register GEE & Setup**
+- [ ] Daftar GEE (signup.earthengine.google.com) — approval 1-2 hari, lakukan HARI INI
+- [ ] Pilih Community Tier (noncommercial) — deadline April 2026
+- [ ] Setup service account GCP + GEE API key
+- [ ] Create GitHub repo + monorepo structure
+- [ ] Setup Bun + ElysiaJS + MongoDB
 
-**Time estimate:** 4-6 hours
+**Time estimate:** 4-5 jam
 
-**Day 2-3: Frontend - Foundation**
-- [ ] Create React + Vite project
-- [ ] Install Tailwind CSS, Leaflet, React Query, Zustand
-- [ ] Create page structure:
-  - [ ] Home.tsx
-  - [ ] ObservationForm.tsx
-  - [ ] Results.tsx
-  - [ ] Map.tsx
-- [ ] Set up routing (React Router)
-- [ ] Create layout component (header, nav, footer)
-- [ ] Style home page with hero section
+**Day 2: Python Worker + GEE Auth**
+- [ ] Setup Python worker (FastAPI)
+- [ ] GEE authentication (service account)
+- [ ] Test: `ee.Initialize()` + basic query
+- [ ] Create endpoint: POST /analyze → returns test data
 
-**Time estimate:** 6-8 hours
+**Time estimate:** 5-6 jam
 
-**Day 3-4: Backend - API Structure**
-- [ ] Set up ElysiaJS server skeleton
-- [ ] Create database models (Mongoose schemas):
-  - [ ] Observation
-  - [ ] AnalysisResult
-  - [ ] User (minimal)
-- [ ] Create basic REST routes:
-  - [ ] POST /api/v1/observations (create)
-  - [ ] GET /api/v1/observations/:id (read)
-  - [ ] GET /api/v1/observations/:id/analysis (get results)
-- [ ] Set up error handling middleware
-- [ ] Test with Postman/curl
+**Day 3: Sentinel-1 SAR Integration**
+- [ ] Implement `get_sar_water_mask()` — query S1 GRD
+- [ ] Speckle filter + backscatter threshold
+- [ ] Water percentage calculation
+- [ ] Test: 5 lokasi di Indonesia
 
-**Time estimate:** 6-8 hours
+**Time estimate:** 6-8 jam
 
-**Day 5: Integration & Testing**
-- [ ] Frontend → Backend: Test photo submission endpoint
-- [ ] Verify database storage (MongoDB)
-- [ ] Set up basic logging (Winston)
-- [ ] Test on mobile device (responsive design)
+**Day 4: Add NDWI + CHIRPS + Soil + Elevation**
+- [ ] Implement `get_ndwi_if_available()` — S2 NDWI
+- [ ] Implement `get_chirps_rainfall()` — 7-day rainfall
+- [ ] Implement `get_soil_type()` — OpenLandMap
+- [ ] Implement `get_elevation()` — SRTM
+- [ ] Full pipeline: all 5 sources in one call
 
-**Time estimate:** 3-4 hours
+**Time estimate:** 6-8 jam
 
-**Week 1 Total: 25-30 hours**
+**Day 5: Test & Caching**
+- [ ] Test full multi-source pipeline → structured JSON output
+- [ ] Implement caching (7-day TTL) untuk data satelit
+- [ ] Error handling per source (graceful degradation)
+- [ ] Document output format
 
-**Deliverable:** Functional form that submits observation, saves to DB, returns observation ID.
+**Time estimate:** 4-5 jam
+
+**Week 1 Total: 25-32 jam**
+
+**Deliverable:** Python worker yang bisa menerima (lat, lng) → return structured JSON dari 5 sumber data satelit.
 
 ---
 
-### WEEK 2: AI & SATELLITE INTEGRATION
+### WEEK 2: GEMINI INTEGRATION + BACKEND/FRONTEND
 
-**Goal:** Connect Gemini Vision API and Google Earth Engine.
+**Goal:** Full pipeline: Submit → GEE → Gemini → Result.
 
 **Tasks:**
 
-**Day 1-2: Gemini Vision Integration**
-- [ ] Create `geminiService.ts` wrapper
-- [ ] Test Gemini API locally with sample image
-- [ ] Create `analyzePhoto` job processor (Bull queue)
-- [ ] Implement error handling + retries
-- [ ] Test: Submit photo → Gemini analysis → Store result
+**Day 1-2: Gemini AI Analyst Integration**
+- [ ] Create `geminiService.ts` — kirim structured satellite data, bukan foto
+- [ ] Design system prompt + data format
+- [ ] Test: kirim sample satellite JSON → Gemini returns analysis
+- [ ] Handle: parsing JSON response, error handling, retry logic
 
-**Time estimate:** 6-8 hours
+**Time estimate:** 6-8 jam
 
-**Challenges:**
-- Gemini API response format (sometimes markdown, not JSON)
-- Solution: Add explicit "respond as JSON only" to prompt
-- Image encoding/compression
+**Day 2-3: Backend — Full Pipeline**
+- [ ] ElysiaJS endpoints: POST /observations, GET /observations/:id
+- [ ] MongoDB models: Observation, SatelliteData, GeminiAnalysis
+- [ ] Orchestration: submit → call Python worker → call Gemini → store
+- [ ] Error handling: what if GEE fails? what if Gemini fails?
 
-**Day 3-4: Google Earth Engine Setup**
-- [ ] Set up GEE service account (Google Cloud console)
-- [ ] Create Python microservice (`python-worker/app.py`)
-- [ ] Implement NDWI calculation function
-- [ ] Test GEE queries locally with sample coordinates
-- [ ] Create `fetchSatelliteData` job processor
-- [ ] Add Redis caching (7-day TTL)
+**Time estimate:** 6-8 jam
 
-**Time estimate:** 8-10 hours
+**Day 3-4: Frontend — Submit + Result Page**
+- [ ] React + Vite + Tailwind setup
+- [ ] Form Submit: GPS auto-detect + camera + submit button
+- [ ] Result Page: confidence gauge + AI assessment text + breakdown satelit
+- [ ] Polling setiap 3 detik untuk cek status
 
-**Challenges:**
-- GEE API complexity (learning curve)
-- Sentinel-2 image availability (cloud cover)
-- Solution: Start simple (NDWI only), cache heavily, provide fallback
+**Time estimate:** 6-8 jam
 
-**Day 5: Data Flow Integration**
-- [ ] Wire up all 3 parallel jobs:
-  - Gemini photo analysis
-  - GEE satellite data
-  - BMKG weather (simplified)
-- [ ] Implement job completion check (when all 3 done, trigger comparison)
-- [ ] Test full flow: observation → 3 jobs → completion
+**Day 5: Frontend — Peta Choropleth Indonesia**
+- [ ] Download GeoJSON batas administrasi Indonesia (provinsi)
+- [ ] Leaflet choropleth: warna per provinsi dari data regional_index
+- [ ] Marker observasi di peta
+- [ ] Integrasi end-to-end: submit → result → peta update
 
-**Time estimate:** 6-8 hours
+**Time estimate:** 6-8 jam
 
-**Week 2 Total: 30-35 hours**
+**Week 2 Total: 24-32 jam**
 
-**Deliverable:** End-to-end observation submission → Gemini + GEE analysis → stored in DB.
+**Deliverable:** Full working app: submit observasi → GEE multi-source → Gemini → hasil + peta.
 
 ---
 
-### WEEK 3: ANALYSIS ENGINE & RESULTS PAGE
-
-**Goal:** Build confidence scoring, comparison logic, and results UI.
-
-**Tasks:**
-
-**Day 1-2: Comparison & Analysis Engine**
-- [ ] Implement `calculateConfidence()` function
-- [ ] Create confidence scoring algorithm:
-  - Gemini confidence (0-100)
-  - Satellite NDWI (convert to 0-100 scale)
-  - Agreement penalty
-- [ ] Implement `generateVerdict()` (high/medium/low/none)
-- [ ] Add anomaly detection logic
-- [ ] Create `compareAnalysis` job processor
-
-**Time estimate:** 6-8 hours
-
-**Day 2-3: Results Page UI**
-- [ ] Create Results.tsx component (4-panel layout)
-  - Panel 1: Photo display
-  - Panel 2: Analysis summary (confidence gauge, verdict)
-  - Panel 3: Map with observation location
-  - Panel 4: Detailed breakdown
-- [ ] Implement polling (React Query refetchInterval)
-- [ ] Add loading states & spinners
-- [ ] Style all panels (Tailwind)
-
-**Time estimate:** 8-10 hours
-
-**Day 4: Frontend - Explore/Map View**
-- [ ] Create Explore.tsx (interactive map page)
-- [ ] Implement Leaflet with observation markers
-- [ ] Add heatmap overlay (Leaflet.heat)
-- [ ] Add filters (date range, confidence threshold)
-- [ ] Connect to backend `/map/heatmap` endpoint
-
-**Time estimate:** 6-8 hours
-
-**Day 5: Backend - Analytics Endpoints**
-- [ ] Create `/api/v1/map/heatmap` endpoint (GeoJSON)
-- [ ] Create `/api/v1/regions/:region/stats` (regional stats)
-- [ ] Implement simple aggregation (avg confidence, % water presence)
-- [ ] Test endpoints with mock data
-
-**Time estimate:** 4-6 hours
-
-**Week 3 Total: 30-35 hours**
-
-**Deliverable:** Complete results page, explore map, functional analysis engine.
-
 ---
 
-### WEEK 4: TESTING, POLISH & LAUNCH PREP
+### WEEK 3: POLISH, TESTING & PETA INDONESIA
 
-**Goal:** Validate accuracy, fix bugs, prepare for competition submission.
+**Goal:** Validasi akurasi, peta choropleth sempurna, siap demo.
 
 **Tasks:**
 
-**Day 1: Validation Testing**
-- [ ] Conduct 5-10 real observations in different environments:
-  - Urban (parking lot, street)
-  - Agricultural (farm field)
-  - Water body (lake, river, pond)
-  - Dry area (concrete, desert)
-  - Wet area (flooded field, swamp)
-- [ ] Document results:
-  - Photo
-  - System verdict (confidence + water presence)
-  - Ground truth (manual observation)
-- [ ] Calculate accuracy metrics (precision, recall, F1)
+**Day 1-2: Peta Choropleth Indonesia + Regional Index**
+- [ ] Batch job: hitung water index per provinsi dari data SAR
+- [ ] Store di collection `regional_index`
+- [ ] Frontend: GeoJSON choropleth dengan warna gradien
+- [ ] Interaktif: klik provinsi → lihat detail
 
-**Time estimate:** 4-6 hours (fieldwork) + 2 hours analysis
+**Time estimate:** 6-8 jam
 
-**Day 2-3: Bug Fixes & Optimization**
-- [ ] Fix critical bugs found during testing
-- [ ] Optimize performance:
-  - Image compression (reduce from 5MB to 1-2MB)
-  - Caching improvements
-  - Database indices
-- [ ] Improve error messages (user-friendly)
-- [ ] Add loading indicators
+**Day 2-3: Validation Testing**
+- [ ] Test di 10+ lokasi:
+  - Laut/sungai/danau → harus "DEFINITIVE"
+  - Sawah tergenang → harus "PROBABLE"
+  - Kota/gurun → harus "UNLIKELY"
+  - Hutan → harus "POSSIBLE" (karena vegetasi)
+- [ ] Bandingkan output sistem vs ground truth
+- [ ] Hitung akurasi (precision, recall, F1)
 
-**Time estimate:** 8-10 hours
+**Time estimate:** 8-10 jam
 
-**Day 4: Documentation & README**
-- [ ] Write project README.md
-- [ ] Create API documentation (endpoints, request/response examples)
-- [ ] Document methodology & limitations
-- [ ] Create setup guide (how to run locally)
-- [ ] Take screenshots for presentation
+**Day 4: Bug Fixes & Optimization**
+- [ ] Fix: SAR false positive di area urban
+- [ ] Caching: pastikan data satelit di-cache
+- [ ] Error handling: graceful degradation
+- [ ] UI polish: loading states, error messages
 
-**Time estimate:** 4-6 hours
+**Time estimate:** 6-8 jam
 
-**Day 5: Final Testing & Deployment**
-- [ ] End-to-end test (all flows)
-- [ ] Mobile responsiveness test (iOS + Android)
-- [ ] Load test (simulate 10+ simultaneous users)
-- [ ] Deploy to staging (Railway or Heroku)
-- [ ] Deploy frontend to Vercel
-- [ ] Test on production environment
-- [ ] Final bugfixes
+**Day 5: Deployment + Demo Prep**
+- [ ] Deploy Python worker ke Railway
+- [ ] Deploy backend ke Railway
+- [ ] Deploy frontend ke Vercel
+- [ ] Test end-to-end di production
+- [ ] Siapkan demo + backup (screenshot + video)
 
-**Time estimate:** 6-8 hours
+**Time estimate:** 6-8 jam
 
-**Week 4 Total: 30-35 hours**
+**Week 3 Total: 26-34 jam**
 
-**Deliverable:** Production-ready MVP, validated with real-world data, deployed and tested.
+**Deliverable:** Production-ready MVP dengan peta Indonesia choropleth, validated.
+
+---
 
 ---
 
@@ -252,34 +178,32 @@
 
 | Week | Hours | Status |
 |------|-------|--------|
-| 1 | 25-30 | Foundation |
-| 2 | 30-35 | Integration |
-| 3 | 30-35 | Features |
-| 4 | 30-35 | Testing |
-| **TOTAL** | **115-135** | **~4 weeks FTE** |
+| 1 | 25-32 | GEE Multi-Source Pipeline |
+| 2 | 24-32 | Gemini + Backend + Frontend |
+| 3 | 26-34 | Peta Indonesia + Testing |
+| **TOTAL** | **75-98** | **~3 weeks FTE** |
 
-**Interpretation:** Full-time developer can complete in 3-4 weeks working 8 hours/day.
+**Interpretation:** Full-time developer can complete in 2.5-3 weeks. Lebih cepat dari estimasi awal karena arsitektur lebih sederhana (1 DB, no queue, no BMKG).
 
 ---
 
 ## PHASED ROLLOUT STRATEGY
 
-### MVP (Week 1-4) - For Competition
+### MVP (Week 1-3) - For Competition
 
 **Must-Have:**
-- ✅ Photo submission form
-- ✅ Gemini Vision analysis
-- ✅ Satellite NDWI integration
-- ✅ Confidence scoring
+- ✅ GEE multi-source pipeline (SAR + NDWI + CHIRPS + Soil + Elevation)
+- ✅ Gemini AI analyst (satellite data interpretation)
+- ✅ Confidence scoring + natural language assessment
 - ✅ Results page
-- ✅ Map visualization
+- ✅ Peta choropleth Indonesia per provinsi
 - ✅ Works on mobile
 
 **Nice-to-Have:**
-- ⚠️ BMKG weather integration (skip if complex)
-- ⚠️ BIG API soil data (skip, use DEM only)
-- ⚠️ User accounts (anonymous observations OK for MVP)
-- ⚠️ Regional aggregation (hourly batch job)
+- ⚠️ Historical trend analysis (30-day charts)
+- ⚠️ User accounts (anonymous OK for MVP)
+- ⚠️ Detail panel per sumber satelit
+- ⚠️ Offline mode
 
 **Out of Scope:**
 - ❌ Real-time alerts
@@ -305,56 +229,56 @@
 **Structure:**
 
 1. **Problem Statement (1 min)**
-   - "How do we quickly detect water presence in remote or disaster areas?"
-   - Current: Ground surveys (slow, expensive) or low-res satellite (60m resolution)
-   - Our solution: Crowdsourced smartphone observations + AI validation
+   - "Indonesia kesulitan monitoring sumber air — 70-90% awan, data lambat, mahal"
+   - Solusi kami: Satelit radar (tembus awan) + AI analyst
+   - Peta Indonesia real-time dari satelit
 
 2. **Technical Solution (2 min)**
-   - Show architecture diagram
-   - Explain 3-stage processing: Gemini + GEE + comparison
-   - Highlight confidence scoring (0-100%)
-   - Show live demo if possible
+   - Tunjukkan peta Indonesia choropleth (LIVE)
+   - Jelaskan 5 sumber satelit via GEE (SAR = tembus awan)
+   - Gemini sebagai AI analyst (bukan photo analysis)
+   - Demo: submit observasi → 20 detik → hasil
 
 3. **Results & Validation (1 min)**
-   - Show 5 real-world test cases
-   - Accuracy metrics (F1 score)
-   - Time to result (10-15 sec)
+   - SAR water detection akurat walau mendung
+   - Multi-source lebih reliable dari single source
+   - Target F1 ≥ 0.80
 
 4. **Impact & Scalability (1 min)**
-   - Use cases: Disaster response, agriculture, water management
-   - Scalable architecture (handles 1000s of observations)
-   - Future potential: Government integration
+   - Peta Indonesia otomatis update dari satelit
+   - Disaster response, pertanian, lingkungan
+   - Semua gratis (GEE + Gemini free tier)
 
 ### Demo Points
 
 **Show:**
-1. Submit observation (location + photo)
-2. Real-time processing (show status updates)
-3. Results page (confidence gauge, satellite overlay)
-4. Map view (heatmap of water presence)
-5. Limitations (honest about accuracy constraints)
+1. Buka app → lihat peta Indonesia choropleth (warna per provinsi)
+2. Submit observasi (GPS + foto)
+3. Loading... tunjukkan proses GEE multi-source
+4. Hasil: confidence gauge + AI assessment + breakdown satelit
+5. Peta update setelah observasi
 
 **Have Ready:**
-- Pre-recorded demo (backup if network fails)
-- Screenshots from validation tests
-- Architecture diagram
-- Cost breakdown (GEE free, Gemini $0.0008/image)
+- Pre-recorded demo (backup if WiFi fails)
+- Screenshot perbandingan: daerah basah vs kering di peta
+- Architecture diagram (GEE 5 sumber → Gemini)
+- Cost breakdown: GEE gratis, Gemini gratis (50k/bulan), semua Rp 0
 
 ### Judging Criteria (Likely)
 
 | Criterion | Weight | How to Win |
 |-----------|--------|-----------|
-| **Innovation** | 25% | AI + satellite combo, novel citizen science angle |
-| **Technical Execution** | 25% | Clean code, working product, proper error handling |
-| **Practical Impact** | 20% | Real use cases, solves actual problem |
-| **Presentation** | 15% | Clear demo, good visuals, confident explanation |
-| **Team Capability** | 15% | Shows you can deliver (references if applicable) |
+| **Innovation** | 25% | Multi-source satelit (SAR tembus awan) + AI analyst — unique! |
+| **Technical Execution** | 25% | GEE multi-source pipeline + Gemini integration — advanced |
+| **Practical Impact** | 20% | Peta Indonesia real-time, solusi untuk masalah tropis |
+| **Presentation** | 15% | Demo peta choropleth Indonesia live — visual impact |
+| **Team Capability** | 15% | Menguasai GEE, remote sensing, AI — impressive |
 
 **Focus on:**
-- Unique combination (Gemini + GEE + crowdsourcing)
-- Real-world validation (5-10 ground truth tests)
-- Honest limitations (builds credibility)
-- Scalable architecture
+- Sentinel-1 SAR untuk Indonesia (tembus awan — critical differentiator!)
+- Peta choropleth Indonesia yang terupdate otomatis
+- AI sebagai analyst (bukan photo classifier) — lebih canggih
+- Real-world validation (10+ test locations)
 
 ---
 
@@ -364,20 +288,20 @@
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|-----------|
-| Gemini API quota exceeded | Medium | High | Cache results, use batch processing |
-| GEE queries slow | Medium | Medium | Cache 7 days, set 30-sec timeout |
-| BMKG API down | High | Low | Skip gracefully, continue without weather |
-| Satellite no data (clouds) | Medium | Medium | Show "no recent satellite data", use historical |
-| Database corruption | Low | High | Daily backups, test recovery |
+| GEE quota limit | Medium | High | Cache 7 hari, pilih Community Tier |
+| SAR no data for location | Low | Medium | Skip SAR, proses dengan data lain |
+| Sentinel-2 always cloudy | High | Low | SAR adalah PRIMARY (tembus awan) |
+| Gemini timeout | Medium | Medium | Retry 1x, fallback: tampilkan data mentah |
+| Gemini response format | Medium | Medium | Prompt engineering: "respond ONLY valid JSON" |
 
 ### Schedule Risks
 
 | Risk | Mitigation |
 |------|-----------|
-| AI API delays | Start with mocked responses, integrate real APIs later |
-| GEE learning curve | Pre-read docs, use Python client library |
-| Image processing issues | Use ImageCompression.js library (pre-tested) |
-| Database setup time | Use Docker Compose (pre-configured) |
+| GEE approval delay | Daftar HARI INI, approval 1-2 hari |
+| GEE learning curve | Gunakan Python client (lebih mudah dari JS) |
+| SAR interpretation | Threshold sederhana (VH < -20dB), Gemini yang analisis |
+| Gemini prompt not stable | Test prompt 5x dengan data berbeda sebelum fix |
 
 ---
 
@@ -385,24 +309,27 @@
 
 ### MVP Must-Have
 
-- [ ] App deployed (frontend on Vercel, backend on Railway)
-- [ ] Observation submission works
-- [ ] Analysis completes in < 20 sec
-- [ ] Results displayed to user
+- [ ] GEE multi-source pipeline berfungsi (5 sumber)
+- [ ] Gemini analyst menghasilkan assessment yang masuk akal
+- [ ] App deployed (frontend Vercel, backend + worker Railway)
+- [ ] Observation submission → GEE → Gemini → result < 30 detik
+- [ ] Peta choropleth Indonesia tampil di halaman utama
 - [ ] Works on mobile
 - [ ] No critical errors on demo day
 
 ### Validation
 
-- [ ] Tested on 5+ real observations
+- [ ] Tested on 10+ real locations across Indonesia
 - [ ] Accuracy documented (precision, recall, F1)
+- [ ] Perbandingan: SAR vs NDWI vs ground truth
 - [ ] Limitations clearly stated
 
 ### Presentation
 
-- [ ] Clear demo (2-3 min live or pre-recorded)
-- [ ] Architecture explained
-- [ ] Use cases articulated
+- [ ] Demo: peta Indonesia choropleth (live!)
+- [ ] Demo: submit observasi → hasil (live atau recorded)
+- [ ] Architecture explained (GEE multi-source → Gemini)
+- [ ] Why SAR for Indonesia? (tembus awan!)
 - [ ] Question answers prepared
 
 ---

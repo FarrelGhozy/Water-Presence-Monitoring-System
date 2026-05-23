@@ -12,14 +12,14 @@
 ### 1.1 Vision & Mission
 Create a **citizen science + AI-powered platform** for real-time water presence monitoring via crowdsourced observations combined with satellite data validation.
 
-**Key Insight:** Single photo + smartphone GPS is not enough to detect groundwater accurately. Instead, combine visual AI (Gemini), satellite surface water detection (Sentinel-2 NDWI), weather correlation (BMKG), and historical trends to build a *confidence indicator* rather than a binary detection.
+**Key Insight:** Single photo + smartphone is not enough for accurate water detection, especially in tropical Indonesia with 70-90% cloud cover. Instead, use **multi-source satellite analysis** as primary detection (Sentinel-1 SAR radar + Sentinel-2 NDWI + CHIRPS rainfall + soil + elevation), with Gemini AI as an **intelligent analyst** that interprets all satellite data and produces a comprehensive confidence score and natural language assessment.
 
 ### 1.2 Core Value Proposition
-- **Accessible:** Works on any smartphone
-- **Real-time:** Instant results (10-15 sec)
-- **Validated:** Combines multiple data sources
-- **Scalable:** Crowdsourced observations feed into regional analysis
-- **Transparent:** Shows confidence scores & sources
+- **Satellite-First:** Multi-source satellite analysis (SAR + NDWI + CHIRPS + soil + DEM) — lebih akurat
+- **AI-Powered Interpretation:** Gemini AI menganalisis semua data satelit, bukan foto
+- **Tembus Awan:** Sentinel-1 SAR radar works regardless of cloud cover
+- **Peta Indonesia Otomatis:** Choropleth map per provinsi dari data satelit
+- **Accessible:** Hasil setara analis remote sensing, untuk masyarakat umum
 
 ### 1.3 Target Use Cases
 1. **Disaster response:** Rapid flood/water body mapping after events
@@ -37,105 +37,106 @@ Create a **citizen science + AI-powered platform** for real-time water presence 
 ┌─────────────────────────────────────────────────────────┐
 │ Frontend (Vercel)                                       │
 │ - React + Vite + Tailwind                              │
-│ - PWA-capable (offline support minimal)                │
+│ - Leaflet.js + Choropleth Map Indonesia                │
 └─────────────────────────────────────────────────────────┘
                         ↓
-          (HTTPS REST with JWT auth)
+                (HTTPS REST API)
                         ↓
 ┌─────────────────────────────────────────────────────────┐
-│ Backend (Railway / Heroku)                              │
-│ - Bun runtime + ElysiaJS                               │
-│ - REST API, WebSocket for live updates                 │
-│ - Queue manager (Bull/BullMQ)                          │
-│ - Session/JWT token manager                            │
+│ Backend (Railway)                                       │
+│ - Bun runtime + ElysiaJS (sederhana)                   │
+│ - REST API (6 endpoints)                               │
+│ - Gemini 2.0 Flash integration                         │
+│ - MongoDB storage                                      │
 └─────────────────────────────────────────────────────────┘
-         ↓                    ↓                    ↓
-    ┌────────────┐    ┌────────────┐    ┌──────────────┐
-    │ Data Layer │    │Processing  │    │External APIs │
-    └────────────┘    │Microservices  └──────────────┘
-         ↓            │
-    ┌────────────┐    ↓
-    │ MongoDB    │  ┌────────────────────┐
-    │ (MongoDB   │  │ Python Worker      │
-    │  Atlas)    │  │ (satellite processing)
-    └────────────┘  └────────────────────┘
-         ↓
-    ┌────────────┐
-    │PostgreSQL  │
-    │(time-series│
-    │+ spatial)  │
-    └────────────┘
-         ↓
-    ┌────────────┐
-    │ Redis      │
-    │ (cache +   │
-    │  queue)    │
-    └────────────┘
+         ↓                    ↓
+    ┌────────────┐    ┌──────────────────────────────┐
+    │ MongoDB    │    │ Python Worker                │
+    │ (Atlas)    │    │ GEE Multi-Source Pipeline    │
+    │Observations│    ├─ Sentinel-1 SAR (tembus awan)│
+    │Results     │    ├─ Sentinel-2 NDWI             │
+    │Regional    │    ├─ CHIRPS rainfall             │
+    │Index       │    ├─ OpenLandMap soil            │
+    └────────────┘    └─ SRTM elevation             │
+                      └──────────────────────────────┘
+                               ↓
+                      ┌──────────────────┐
+                      │ Google Earth     │
+                      │ Engine (API)     │
+                      │ Semua data       │
+                      │ satelit gratis   │
+                      └──────────────────┘
 ```
 
-### 2.2 Database Schema (High-Level)
+### 2.2 Database Schema (Satu Database — MongoDB)
 
-#### MongoDB Collections
-**observations** collection
+#### Collection: `observations`
 ```
 {
   _id: ObjectId,
   userId: string,
   latitude: number,
   longitude: number,
+  province: string,
   timestamp: Date,
   photoUrl: string,
-  photoHash: string,
-  status: "pending" | "processing" | "completed" | "error",
+  status: "processing" | "completed" | "error",
   createdAt: Date,
   updatedAt: Date
 }
 ```
 
-**analysis_results** collection
+#### Collection: `satellite_data`
 ```
 {
   _id: ObjectId,
   observationId: ObjectId,
   
-  gemini_result: {
-    soilType: string,
-    waterPresence: "high" | "medium" | "low" | "none",
-    waterPresenceConfidence: number (0-100),
-    surfaceCondition: string,
-    vegetation: string,
-    details: string
+  sar_analysis: {
+    waterPercentage: number (0-100),
+    backscatterMean: number,
+    waterMaskUrl: string,
+    confidence: "high" | "medium" | "low"
   },
   
-  satellite_data: {
-    ndwiValue: number (-1 to 1),
-    cloudCover: number (0-100),
-    imageDate: Date,
-    imageSource: "sentinel2" | "landsat",
-    hasWaterFeature: boolean,
-    waterArea_sqm: number (null if no water)
+  ndwi: {
+    value: number (-1 to 1) | null,
+    cloudCover: number | null,
+    available: boolean
   },
   
-  weather_data: {
-    temperature: number,
-    humidity: number,
-    rainfall_24h: number (mm),
-    source: "bmkg"
+  chirps: {
+    rainfall7day_mm: number,
+    trend: "increasing" | "decreasing" | "stable",
+    anomaly: number | null
   },
   
-  soil_data: {
-    soilType: string (from BIG API),
-    elevation: number (m),
-    landCover: string
+  soil: {
+    type: string,
+    drainage: string
   },
   
-  analysis: {
-    confidence_score: number (0-100),
-    water_presence_likelihood: "high" | "medium" | "low" | "none",
-    risk_indicators: [string],
-    anomalies: [string],
-    recommendation: string
+  elevation: {
+    meters: number,
+    terrain: string
   },
+  
+  createdAt: Date
+}
+```
+
+#### Collection: `gemini_analysis`
+```
+{
+  _id: ObjectId,
+  observationId: ObjectId,
+  
+  confidence: number (0-100),
+  verdict: "definitive" | "probable" | "possible" | "unlikely",
+  reasoning: string,
+  contributingFactors: [string],
+  anomalies: [string],
+  recommendations: [string],
   
   createdAt: Date,
   processedAt: Date,
@@ -143,26 +144,20 @@ Create a **citizen science + AI-powered platform** for real-time water presence 
 }
 ```
 
-#### PostgreSQL Tables
-**time_series_observations** table (for aggregation queries)
+#### Collection: `regional_index`
 ```
-id (pk), 
-observation_id (fk), 
-latitude, 
-longitude, 
-date (indexed),
-ndwi_value, 
-confidence_score, 
-water_presence (bool)
-```
-
-**spatial_index** table (for geographic queries)
-```
-id (pk),
-observation_id (fk),
-geom (PostGIS geometry),
-region (string: province/district),
-created_at (indexed)
+{
+  _id: ObjectId,
+  province: string (unique),
+  waterIndex: number (0-100),
+  waterPercentage: number,
+  observationCount: number,
+  lastUpdated: Date,
+  historicalTrend: [{
+    date: Date,
+    waterIndex: number
+  }]
+}
 ```
 
 ---
@@ -346,120 +341,181 @@ Response formatter
 
 ---
 
-### 3.3 AI/Vision Processing (Gemini Vision API)
+### 3.3 AI Analysis (Gemini 2.0 Flash — Satellite Data Analyst)
+
+**Peran BARU:** Gemini tidak lagi menganalisis foto. Ia menerima **seluruh data satelit** dari GEE (terstruktur dalam JSON) dan memberikan analisis komprehensif.
 
 #### Prompt Engineering
 
 **System Prompt (permanent):**
 ```
-You are an environmental analyst specializing in water and soil assessment.
-Analyze the provided image and respond ONLY in valid JSON format with no markdown or preamble.
+You are a hydrology and remote sensing analyst specialized in water presence 
+detection in tropical environments. You receive multi-source satellite data 
+for a specific location. Analyze ALL data sources comprehensively and respond 
+in valid JSON with a natural language summary.
 ```
 
-**User Prompt (per observation):**
+**Input Data (structured, dari GEE):**
 ```json
 {
-  "image": "<base64-encoded image>",
   "location": {
-    "latitude": <number>,
-    "longitude": <number>,
-    "name": "<region name>"
+    "latitude": -7.25,
+    "longitude": 112.75,
+    "province": "Jawa Timur"
   },
-  "prompt": "Analyze this location for the following. Respond as JSON only:
-  1. Estimated soil type (clay, sandy, loam, rocky, peat)
-  2. Visible water presence (high, medium, low, none) with reasoning
-  3. Confidence in assessment (0-100)
-  4. Surface conditions (wet, damp, dry, flooded, standing water)
-  5. Vegetation type and health
-  6. Any visible anomalies or concerns
-  7. Recommendations for next assessment"
+  "satellite_data": {
+    "sar": {
+      "water_percentage": 34.2,
+      "backscatter_mean": -18.5,
+      "confidence": "high"
+    },
+    "ndwi": {
+      "value": 0.42,
+      "cloud_cover": 15,
+      "available": true
+    },
+    "rainfall": {
+      "total_7day_mm": 120,
+      "trend": "increasing",
+      "anomaly": null
+    },
+    "soil": {
+      "type": "clay loam",
+      "drainage": "moderate"
+    },
+    "elevation": {
+      "meters": 45,
+      "terrain": "flat"
+    }
+  },
+  "observation": {
+    "timestamp": "2026-05-23T10:30:00Z",
+    "photo_url": "https://..."
+  }
 }
 ```
 
 **Expected Response:**
 ```json
 {
-  "soilType": "loamy clay",
-  "waterPresence": "medium",
-  "confidence": 72,
-  "surface": "damp soil with standing puddles",
-  "vegetation": "grass and reeds, healthy",
-  "anomalies": ["muddy discharge visible, possibly from upstream"],
-  "notes": "High water table indicated by vegetation type and surface conditions"
+  "confidence": 78,
+  "verdict": "probable",
+  "reasoning": "SAR analysis shows 34.2% water coverage with strong backscatter signature, indicating surface water presence. NDWI (0.42) confirms open water. Recent rainfall (120mm/7d) supports wet conditions. Flat terrain with clay loam soil (moderate drainage) is consistent with water retention. All sources agree — high confidence in water presence assessment.",
+  "contributing_factors": [
+    "SAR water mask: 34% coverage — STRONG indicator",
+    "NDWI: 0.42 — confirms open water",
+    "Rainfall: 120mm in 7 days — supports wet conditions",
+    "Terrain: flat, 45m elevation — allows water accumulation",
+    "Soil: clay loam — moderate drainage"
+  ],
+  "anomalies": [],
+  "recommendations": [
+    "Site verification recommended for critical applications",
+    "Monitor weekly for flood risk if rain continues"
+  ]
 }
 ```
 
 #### Cost & Limits
-- **Cost:** ~$0.0008 per image (Gemini Vision pricing)
-- **Rate limit:** 50,000 requests/month free tier (enough for hackathon)
-- **Timeout:** 30 seconds per call
-- **Fallback:** If API fails, mark analysis as "awaiting Gemini" and retry later
+- **Cost:** ~$0.001-0.003 per analysis (tergantung input size, 50k context)
+- **Rate limit:** 50,000 requests/month free tier
+- **Timeout:** 15 seconds per call
+- **Fallback:** If Gemini fails, display raw satellite data with note "AI analysis unavailable"
 
 ---
 
-### 3.4 Satellite Data Processing (Google Earth Engine API)
+### 3.4 Satellite Data Processing (Google Earth Engine API — Multi-Source)
 
-#### NDWI Calculation
+#### A. Sentinel-1 SAR (Primary — Tembus Awan)
+
+**Why SAR for Indonesia?**
+- **Radar microwave** menembus awan (critical untuk Indonesia 70-90% cloudy)
+- Air punya **backscatter rendah** (permukaan halus) → mudah dibedakan dari tanah
+- Resolusi 10m, cukup untuk deteksi badan air sedang-besar
+
+**How SAR Water Detection Works:**
+```
+Air (genangan):   backscatter < -20 dB (sinyal dipantulkan menjauh)
+Tanah kering:     backscatter > -15 dB (sinyal dipantulkan kembali)
+Vegetasi:         backscatter -10 to -5 dB
+Urban:            backscatter > -5 dB (sangat terang)
+```
+
+**GEE Workflow (SAR):**
+```
+1. Query Sentinel-1 GRD for location ± 5km, date ± 7 days
+2. Select VH polarization (better for water detection)
+3. Apply speckle filter (Refined Lee)
+4. Threshold backscatter < -20 dB → water mask
+5. Calculate water percentage in area
+6. Return: {waterPercentage, backscatterMean, confidence}
+```
+
+#### B. Sentinel-2 NDWI (Secondary — Jika Awan Rendah)
 
 **What is NDWI?**
 - Normalized Difference Water Index = (Green - NIR) / (Green + NIR)
 - Sentinel-2 bands: Green = B3, NIR = B8
 - Range: -1 (no water) to +1 (open water)
 - Threshold: NDWI > 0.3 = water detected
+- **Hanya digunakan jika cloud cover < 20%** (jarang di Indonesia)
 
-**GEE Workflow (asynchronous)**
+#### C. CHIRPS Rainfall (Konteks)
+- Data curah hujan 7 hari terakhir
+- Untuk korelasi: apakah kondisi basah karena hujan atau sumber air permanen?
+- Trend: increasing/decreasing/stable
 
+#### D. OpenLandMap Soil Type
+- Klasifikasi jenis tanah di lokasi observasi
+- Konteks: tanah liat (drainase buruk → genangan), pasir (drainase cepat → kering)
+
+#### E. SRTM Elevation
+- Elevasi + slope
+- Konteks: daerah rendah cenderung tergenang, lereng curam cenderung kering
+
+**Full GEE Multi-Source Workflow:**
 ```
-1. Query Sentinel-2 L2A for location ± 5km, date ± 3 days
-2. Filter by cloud cover < 20%
-3. Calculate NDWI for all available images
-4. Apply threshold to create water mask
-5. Calculate percentage of water pixels in area
-6. Retrieve historical trend (last 30/90 days if available)
-7. Cache result for 7 days
-8. Return: {ndwiValue, waterArea, cloudCover, imageDate, hasWaterFeature}
+1. Query S1 SAR → water mask (PRIMARY, always available)
+2. Query S2 NDWI → if cloud < 20% (SECONDARY)
+3. Query CHIRPS → rainfall 7-day (CONTEXT)
+4. Query OpenLandMap → soil type (CONTEXT)
+5. Query SRTM     → elevation (CONTEXT)
+6. Cache all results for 7 days
+7. Return structured JSON → send to Gemini
 ```
-
-**Implementation Notes**
-- Use GEE JavaScript API or Python client
-- Create a dedicated service account for authentication
-- Batch requests to avoid quota limits
-- Cache aggressively (satellite data changes slowly)
 
 **Challenges & Mitigations**
 | Challenge | Reality | Solution |
 |-----------|---------|----------|
-| Cloud cover | 30-50% of images | Filter + historical fallback |
-| No image available | Rare but possible | Mark as "no recent satellite data" |
-| Shadow confusion | Common in mountains | Use multiple spectral bands |
-| Misidentified water | Urban reflections | Combine with MNDWI (more selective) |
+| SAR false positives | Urban areas reflect like water | Filter with land cover data |
+| SAR saturation | Very shallow water missed | Combine with NDWI when available |
+| Cloud cover | 70-90% in Indonesia | SAR is primary (radar) |
+| No S2 data | Common due to clouds | Skip NDWI, proceed with SAR only |
 
 ---
 
-### 3.5 Weather Data Integration (BMKG API)
+### 3.5 Rainfall Data (CHIRPS via GEE)
+
+**Tidak pakai BMKG API** — tidak reliable. Ganti dengan CHIRPS yang sudah tersedia di GEE.
 
 #### Data Retrieved
-- Temperature (°C)
-- Humidity (%)
-- Rainfall last 24 hours (mm)
-- Wind speed (m/s)
-- Weather condition (clear, cloudy, rainy, etc.)
+- Rainfall total 7 hari terakhir (mm)
+- Trend: increasing / decreasing / stable
+- Anomaly vs historical baseline (jika ada)
 
-#### Challenge: BMKG API Reliability
-**Reality:** BMKG API documentation is poor, downtime is common, rate limits unclear.
-
-**Solution:**
+#### Implementation
 ```
-1. Fetch from BMKG primary endpoint
-2. If timeout after 5 sec → fallback to OpenWeather (costs $$$)
-3. Cache result for 1 hour
-4. If all fail → return null, analysis proceeds without weather
+CHIRPS sudah tersedia di GEE:
+  ee.ImageCollection('UCSB-CHG/CHIRPS/DAILY')
+
+Cukup filter by date + location, extract pixel values.
+Cache 1 hari.
 ```
 
 #### Usage in Analysis
-- High rainfall → increases water presence likelihood
-- Low humidity + high temp → suggests dry conditions
-- Recent rain → explains wet surface without groundwater
+- High rainfall (100mm+/7d) → explains wet conditions
+- Low rainfall + SAR shows water → likely permanent water body
+- Trend increasing → potential flood risk
 
 ---
 
@@ -479,41 +535,39 @@ Analyze the provided image and respond ONLY in valid JSON format with no markdow
 
 ---
 
-### 3.7 Comparison & Analysis Engine
+### 3.7 Analysis Pipeline (No Comparison Engine — Gemini as Analyst)
 
-#### Confidence Score Calculation
+**Tidak ada weighted formula.** Semua data satelit dikirim ke Gemini, yang bertugas sebagai **analis AI** untuk menilai secara holistik.
 
+#### Flow:
 ```
-confidence = (w1 × gemini_conf) + (w2 × satellite_conf) + (w3 × coherence_penalty)
-
-where:
-  w1 = 0.4  (Gemini Vision weight)
-  w2 = 0.4  (Satellite NDWI weight)
-  w3 = 0.2  (Coherence/agreement weight)
-  
-  coherence_penalty = |gemini_water_likelihood - satellite_water_likelihood|
-  → if both agree (both high or both low) → penalty = 0
-  → if they disagree → penalty = up to -40 points
+GEE Multi-Source → Structured JSON → Gemini → Final Assessment
 ```
 
-#### Water Presence Verdict
+#### What Gemini Receives:
+```json
+{
+  "sar": {"waterPercentage": 34, "confidence": "high"},
+  "ndwi": {"value": 0.42, "available": true},
+  "rainfall": {"total7day_mm": 120, "trend": "increasing"},
+  "soil": {"type": "clay loam", "drainage": "moderate"},
+  "elevation": {"meters": 45, "terrain": "flat"}
+}
+```
 
-| Scenario | Verdict | Confidence | Risk |
-|----------|---------|-----------|------|
-| Gemini HIGH + NDWI HIGH + Recent rain | **High** | 85-100 | Surface water present, possible standing water |
-| Gemini HIGH + NDWI LOW + No recent rain | **Medium** | 50-70 | Visual moisture but no satellite confirmation |
-| Gemini LOW + NDWI HIGH + Clouds obscured | **Medium** | 60-75 | Satellite detected but needs validation |
-| Gemini LOW + NDWI LOW + Dry weather | **Low** | 20-40 | No water detected, but limitations apply |
-| All sources absent/failed | **Unknown** | 0-20 | Cannot assess, recommend manual survey |
+#### What Gemini Produces:
+- **confidence** (0-100): Based on strength of satellite evidence
+- **verdict**: definitive / probable / possible / unlikely
+- **reasoning**: Natural language explanation
+- **recommendations**: Actionable next steps
 
-#### Anomaly Detection
-
-**Flags raised if:**
-- Gemini and satellite strongly disagree (> 40 point difference)
-- Cloud cover high (> 50%) on satellite → lower satellite confidence
-- Unusual vegetation for soil type → possible misclassification
-- Large rainfall but no water detected → possible drainage issue
-- Temperature / humidity mismatch with expectations
+#### Fallback (No Weighted Formula Needed):
+| Scenario | Action |
+|----------|--------|
+| All satellite sources available | Full analysis by Gemini |
+| SAR only (clouds blocked optical) | Gemini analyzes SAR + rainfall + soil + elevation |
+| SAR + partial data | Gemini works with available data |
+| Gemini fails | Display raw satellite data, mark "AI analysis unavailable" |
 
 ---
 
@@ -524,64 +578,67 @@ where:
 ```
 USER SUBMITS OBSERVATION
 ├─ Location: {lat, lng}
-├─ Photo: {file, size}
+├─ Photo: {visual reference}
 ├─ Timestamp: {ISO8601}
-└─ Optional: {satellite_lookback_days: 7}
+└─ Region: auto-detect province
 
     ↓ BACKEND RECEIVES
 
 1. VALIDATE (< 2 sec)
-   ├─ Check location valid (within -90..90 lat, -180..180 lng)
-   ├─ Check photo < 5MB, JPEG/PNG only
-   ├─ Check user rate limit (max 10 observations/day)
+   ├─ Check location valid
+   ├─ Check photo < 5MB, JPEG/PNG
    └─ Reject if invalid
 
 2. SAVE TO DB
-   ├─ Insert observation doc with status: "pending"
-   ├─ Hash photo (SHA256), store as {hash}.jpg
+   ├─ Insert observation doc with status: "processing"
    ├─ Upload photo to S3/storage
-   ├─ Return observation_id to user (frontend shows success)
-   └─ Start async processing
+   ├─ Return observation_id to user
+   └─ Start GEE processing
 
-    ↓ QUEUE 3 PARALLEL JOBS (Bull)
+    ↓ GEE MULTI-SOURCE PIPELINE (15-30 sec)
 
-JOB 1: PHOTO ANALYSIS (2-5 sec)
-├─ Encode photo to base64
-├─ Call Gemini Vision API
-├─ Parse response JSON
-└─ Store in analysis_results.gemini_result
+STEP 1: SENTINEL-1 SAR (5-15 sec)
+├─ Query GEE for location ± 5km
+├─ Get recent S1 GRD imagery (< 7 days old)
+├─ Apply speckle filter
+├─ Threshold backscatter < -20dB → water mask
+├─ Calculate water percentage
+└─ Store in satellite_data.sar_analysis
 
-JOB 2: SATELLITE DATA (5-30 sec)
-├─ Query GEE for location + date
-├─ Calculate NDWI
-├─ Handle cloud cover
-├─ Store in analysis_results.satellite_data
+STEP 2: SENTINEL-2 NDWI (5-15 sec, if cloud < 20%)
+├─ Query GEE for location
+├─ Check cloud cover
+├─ If < 20%: calculate NDWI
+├─ If > 20%: mark unavailable
+└─ Store in satellite_data.ndwi
 
-JOB 3: WEATHER & SOIL (2-3 sec)
-├─ Fetch BMKG weather (parallel call)
-├─ Fetch BIG soil/DEM data (parallel call)
-├─ Store both in analysis_results
+STEP 3: CHIRPS RAINFALL (3-5 sec)
+├─ Query GEE for 7-day rainfall
+├─ Calculate total + trend
+└─ Store in satellite_data.chirps
 
-    ↓ WHEN ALL 3 JOBS COMPLETE
+STEP 4: SOIL + ELEVATION (3-5 sec)
+├─ Query OpenLandMap for soil type
+├─ Query SRTM for elevation
+└─ Store in satellite_data.soil + elevation
 
-COMPARISON ENGINE
-├─ Calculate confidence_score
-├─ Determine water_presence_likelihood
-├─ Detect anomalies
-├─ Generate recommendations
-└─ Store in analysis_results.analysis
+    ↓ ALL SATELLITE DATA COLLECTED
+
+SEND TO GEMINI 2.0 FLASH (3-8 sec)
+├─ Format: structured JSON of ALL satellite data
+├─ Send to Gemini with system prompt
+├─ Gemini returns: confidence + verdict + reasoning + recommendations
+└─ Store in gemini_analysis collection
 
 UPDATE OBSERVATION STATUS
 ├─ Change status: "processing" → "completed"
-├─ Set processedAt: now()
-├─ If any job failed → status: "error", store error message
-└─ Notify user via WebSocket or polling
+└─ Notify frontend (polling)
 
 USER SEES RESULTS
-├─ Frontend polls /observations/{id}/analysis
-├─ Receives full analysis object
-├─ Renders all 4 panels
-└─ Shows on map
+├─ Frontend polls /observations/{id}
+├─ Receives: gemini analysis + satellite data
+├─ Renders: 4-panel dashboard
+└─ Updates: Indonesia choropleth map
 ```
 
 ### 4.2 Timing Breakdown
@@ -589,16 +646,15 @@ USER SEES RESULTS
 | Phase | Time | Parallelizable? |
 |-------|------|---|
 | Validate + save | 0.5 sec | - |
-| Queue jobs | 0.1 sec | - |
-| **Job 1:** Gemini Vision | 2-5 sec | ✅ YES |
-| **Job 2:** Earth Engine | 5-30 sec | ✅ YES |
-| **Job 3a:** BMKG weather | 2-3 sec | ✅ YES |
-| **Job 3b:** BIG soil | 1-2 sec | ✅ YES |
-| Comparison logic | 1-3 sec | ⏳ After 1,2,3 |
-| **Total (sequential)** | ~45 sec | - |
-| **Total (parallel)** | ~10-15 sec | 🎯 |
+| **S1 SAR processing** | 5-15 sec | ✅ YES with other GEE |
+| **S2 NDWI (if avail)** | 5-15 sec | ✅ YES |
+| **CHIRPS rainfall** | 3-5 sec | ✅ YES |
+| **Soil + Elevation** | 3-5 sec | ✅ YES |
+| Gemini analysis | 3-8 sec | ⏳ After all GEE data |
+| **Total (worst case)** | ~30 sec | |
+| **Total (typical)** | ~15-20 sec | 🎯 |
 
-**Reality:** Most requests finish in 10-20 sec. Slow ones are due to GEE processing or satellite availability.
+**Dominant factor:** GEE query speed (tergantung server load). Sentinel-1 SAR biasanya 5-10 detik.
 
 ---
 
@@ -663,38 +719,40 @@ USER SEES: "Water presence: MEDIUM (72% confidence) ⚠️"
 
 ## 6. REGIONAL AGGREGATION & INSIGHTS
 
-### 6.1 Hourly Batch Job
+### 6.1 Peta Tematik Indonesia (Choropleth)
+
+**Bukan heatmap biasa** — peta Indonesia dengan warna per provinsi berdasarkan water index dari satelit.
 
 ```
-Every hour at :00 UTC
-├─ Query all observations from last 7 days
-├─ Group by region (province / district)
-├─ Aggregate statistics:
-│  ├─ Average confidence_score
-│  ├─ % observations with high water presence
-│  ├─ Trend (increasing/decreasing/stable)
-│  ├─ Hotspots (locations with repeated high water)
-│  └─ Recent alerts (observations with anomalies)
-├─ Store in regional_summary table
-└─ Update heatmap visualization
+Update: Setiap 6 jam (batch job)
+├─ Query GEE untuk setiap provinsi di Indonesia:
+│  ├─ Sentinel-1 SAR water mask
+│  ├─ Hitung water percentage per provinsi
+│  └─ Assign water index (0-100)
+├─ Simpan di collection regional_index
+└─ Frontend: render GeoJSON choropleth
+
+Warna:
+  🟢 Hijau (75-100):  Sumber air melimpah
+  🟡 Kuning (50-74):  Ketersediaan air sedang
+  🟠 Oranye (25-49):  Rawan air
+  🔴 Merah (0-24):    Kritis/kekeringan
 ```
 
 ### 6.2 Dashboard Displays
 
 **Regional View:**
-- Map with color-coded regions
-  - Green: Low water presence (< 20% of observations)
-  - Yellow: Medium (20-60%)
-  - Red: High (> 60%)
-- Click region → see detail:
-  - Time-series chart (last 30 days)
-  - Recent observations list
-  - Historical baseline vs current
+- Peta choropleth Indonesia dengan warna per provinsi
+- Klik provinsi → lihat detail:
+  - Water index saat ini + tren
+  - Time-series chart (30 hari)
+  - Observasi terkini di provinsi tersebut
+  - Perbandingan dengan baseline historis
 
 **Timeline Analysis:**
-- Plot water presence (%) over time for a region
-- Overlay: rainfall data from BMKG
-- Show correlation (rain → water presence spike)
+- Plot water index (%) over time per provinsi
+- Overlay: rainfall data from CHIRPS
+- Show correlation: rain → water presence
 
 ---
 
@@ -703,70 +761,70 @@ Every hour at :00 UTC
 ### Frontend
 - **Framework:** React 19 + Vite
 - **Styling:** Tailwind CSS
-- **Maps:** Leaflet.js + react-leaflet
+- **Maps:** Leaflet.js + GeoJSON choropleth Indonesia
 - **State:** Zustand + React Query
-- **Forms:** react-hook-form + Zod validation
-- **Build:** Vite (5sec cold start)
-- **Deployment:** Vercel (auto CI/CD from GitHub)
+- **Build:** Vite
+- **Deployment:** Vercel
 
 ### Backend
-- **Runtime:** Bun (~4x faster than Node.js)
-- **Framework:** ElysiaJS (Elysia > Express for performance)
-- **Database Drivers:**
-  - MongoDB: mongoose
-  - PostgreSQL: pg or prisma
-- **Task Queue:** Bull (Redis-backed)
-- **Caching:** Redis (ioredis)
-- **File Storage:** S3 SDK (boto3 if Python worker)
-- **Deployment:** Railway or Heroku (Docker support)
+- **Runtime:** Bun
+- **Framework:** ElysiaJS
+- **Database:** MongoDB Atlas (mongoose)
+- **File Storage:** S3 / DigitalOcean Spaces
+- **Deployment:** Railway
 
-### AI & Data Services
-- **Vision API:** Google Gemini Vision
-- **Satellite:** Google Earth Engine API
-- **Weather:** BMKG API + OpenWeather (fallback)
-- **Soil/DEM:** BIG API + OpenDEM
-- **Async Processing:** Python worker (Bun → Python via HTTP)
+### AI & Satellite Services
+- **AI Analyst:** Google Gemini 2.0 Flash (satellite data interpretation)
+- **Satellite Platform:** Google Earth Engine (single API untuk semua data)
+- **Radar Data:** Sentinel-1 SAR via GEE (tembus awan)
+- **Optical Data:** Sentinel-2 via GEE (jika awan rendah)
+- **Rainfall:** CHIRPS via GEE
+- **Soil:** OpenLandMap via GEE
+- **Elevation:** SRTM via GEE
+
+### Python Worker
+- **Framework:** FastAPI
+- **Role:** GEE multi-source query orchestrator
+- **Communication:** HTTP with Bun backend
 
 ### Databases
-- **MongoDB Atlas:** Flexible schema, easy scaling
-- **PostgreSQL (Supabase):** Time-series + spatial queries
-- **Redis (Upstash):** Cache + queue, free tier good for MVP
+- **MongoDB Atlas:** Satu database untuk semua data (observations + satellite_data + gemini_analysis + regional_index)
 
 ### Monitoring & Logging
-- **Error tracking:** Sentry (free tier)
-- **Logging:** Winston (structured logs)
-- **Analytics:** Simple event logging to DB (minimal)
+- **Error tracking:** Sentry
+- **Logging:** Winston
 
 ---
 
 ## 8. LIMITATIONS & HONEST DISCLAIMERS
 
 ### What This System CANNOT Do
-1. **Detect groundwater** — Only surface water visible to satellites
-2. **Predict future** — Only analyzes current moment, no forecasting
-3. **Replace professional surveys** — Accuracy ~60-80%, not 99%
-4. **Work without internet** — Requires cloud APIs
+1. **Detect groundwater** — Only surface water visible to satellite
+2. **Predict future** — Only current analysis, no forecasting
+3. **Replace professional surveys** — Accuracy ~75-90%
+4. **Work without internet** — Requires cloud APIs (GEE, Gemini)
 5. **Distinguish water types** — Saltwater vs freshwater not determined
 6. **Measure water depth** — Only presence/absence
-7. **Guarantee real-time accuracy** — Satellite data is 3-5 days old minimum
+7. **Detect very small water bodies** — SAR resolution 10m minimal
 
 ### Accuracy Factors
 | Factor | Impact | Note |
 |--------|--------|------|
-| Cloud cover | High | 30-50% of images unusable |
-| Time of day | Medium | Shadows affect Gemini analysis |
-| Image quality | High | Blurry phone photos reduce accuracy |
-| Terrain complexity | Medium | Mountains hide small water bodies |
-| Vegetation type | Medium | Dense plants obscure ground truth |
+| Urban areas | Medium | Buildings can cause SAR false positives |
+| Dense vegetation | Medium | Forest canopy blocks SAR signal |
+| Terrain complexity | Medium | Mountain shadows affect SAR |
+| Water body size | Medium | < 10m water bodies may be missed |
+| Temporal gap | Low | SAR available 1-3 days (vs 3-5 days for optical) |
 
 ### Best Used For
-✅ **Rapid assessment** (disaster response, initial surveys)  
-✅ **Trend monitoring** (is this region getting wetter/drier?)  
-✅ **Public engagement** (crowdsourced environmental data)  
+✅ **Rapid assessment** (disaster response, flood mapping)  
+✅ **Regional monitoring** (peta Indonesia per provinsi)  
+✅ **Trend monitoring** (getting wetter/drier?)  
+✅ **Public engagement** (citizen science + satellite data)  
 
 ❌ **Regulatory decisions** (official water rights)  
 ❌ **Engineering design** (building reservoirs)  
-❌ **Scientific papers** (needs rigorous validation)  
+❌ **Small-scale detection** (puddles, narrow streams)  
 
 ---
 
