@@ -20,7 +20,7 @@ Tapi:
 ## Arsitektur MVP (Revolutionary)
 
 ```
-USER → React Form + Camera (foto = referensi visual)
+USER → Pilih lokasi via GPS (klik peta)
          ↓
     Bun/ElysiaJS Backend
          ↓
@@ -43,7 +43,7 @@ USER → Lihat: Confidence + AI Assessment + Peta Indonesia + Breakdown Satelit
 - ❌ PostgreSQL / PostGIS → cukup MongoDB
 - ❌ BMKG API → ganti CHIRPS via GEE (lebih reliable)
 - ❌ Redis / Bull queue → proses sync dulu
-- ❌ Gemini photo analysis → foto hanya referensi visual
+- ❌ Gemini photo analysis → semua analisis dari data satelit, bukan foto
 
 ---
 
@@ -53,7 +53,6 @@ USER → Lihat: Confidence + AI Assessment + Peta Indonesia + Breakdown Satelit
 ```json
 {
   "_id": "ObjectId",
-  "photoUrl": "string",
   "latitude": "number",
   "longitude": "number",
   "province": "string",
@@ -109,7 +108,7 @@ USER → Lihat: Confidence + AI Assessment + Peta Indonesia + Breakdown Satelit
 
 | Method | Path | Fungsi |
 |--------|------|--------|
-| POST | `/api/observations` | Submit GPS + foto |
+| POST | `/api/observations` | Submit GPS location |
 | GET | `/api/observations/:id` | Detail hasil + analisis |
 | GET | `/api/regions` | Data water index per provinsi (buat peta) |
 | GET | `/api/health` | Health check |
@@ -123,7 +122,7 @@ Total: **4 endpoint**. Simple.
 | Page | Konten |
 |------|--------|
 | **Home** | Hero + peta choropleth Indonesia + tombol "Submit" |
-| **Submit** | GPS + camera + submit |
+| **Submit** | Peta interaktif + pilih lokasi + submit |
 | **Result** | AI Assessment + confidence gauge + breakdown satelit + map |
 | **Map** | Peta Indonesia choropleth + marker |
 
@@ -134,7 +133,7 @@ Total: **4 endpoint**. Simple.
 ```
 1. Buka app → Lihat peta Indonesia (warna per provinsi dari GEE)
 2. Klik "Submit Observation"
-3. GPS auto-fill + ambil foto
+3. Klik peta untuk pilih lokasi (atau GPS auto-detect)
 4. Submit → Loading... (15-30 detik)
 5. GEE proses SAR + NDWI + CHIRPS + Soil + Elevation
 6. Gemini analisis semua data → hasil
@@ -195,7 +194,7 @@ Day 5: Deploy Vercel + Railway, demo prep
 - [ ] GEE Python worker: CHIRPS + OpenLandMap + SRTM berfungsi
 - [ ] Gemini: analisis data satelit → confidence + verdict
 - [ ] Backend: full pipeline submit → GEE → Gemini → result
-- [ ] Frontend: form submit + GPS + camera
+- [ ] Frontend: form submit + GPS (map picker)
 - [ ] Frontend: result page (AI assessment + confidence)
 - [ ] Frontend: Peta choropleth Indonesia (GeoJSON)
 - [ ] Deploy ke Vercel + Railway
