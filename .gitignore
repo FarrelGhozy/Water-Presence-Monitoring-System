@@ -26,3 +26,4 @@ python-worker/.env
 *.swo
 
 .opencode/
+CLAUDE.md
