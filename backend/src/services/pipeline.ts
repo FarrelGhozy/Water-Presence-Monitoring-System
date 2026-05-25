@@ -9,6 +9,8 @@ const FALLBACK_ANALYSIS: GeminiAnalysisResult = {
   confidence: 0,
   verdict: 'possible',
   reasoning: 'AI analysis unavailable. Showing raw satellite data.',
+  contributingFactors: [],
+  anomalies: ['Gemini API was unavailable'],
   recommendations: ['Manual review recommended'],
 }
 
@@ -28,6 +30,8 @@ async function fetchSatelliteData(lat: number, lng: number): Promise<SatelliteDa
 }
 
 export async function processObservation(observationId: string): Promise<void> {
+  const startTime = Date.now()
+
   try {
     await Observation.updateOne({ _id: observationId }, { $set: { status: 'processing' } })
 
@@ -44,7 +48,13 @@ export async function processObservation(observationId: string): Promise<void> {
       console.error(`Gemini failed for ${observationId}:`, err)
     }
 
-    await GeminiAnalysis.create({ observationId, ...geminiResult })
+    await GeminiAnalysis.create({
+      observationId,
+      ...geminiResult,
+      processedAt: new Date(),
+      processingTimeMs: Date.now() - startTime,
+    })
+
     await Observation.updateOne(
       { _id: observationId },
       { $set: { status: 'completed' } }

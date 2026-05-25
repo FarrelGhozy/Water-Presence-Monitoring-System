@@ -1,6 +1,7 @@
 export interface SarData {
   waterPercentage: number | null
   backscatterMean: number | null
+  waterMaskUrl?: string | null
   confidence: 'high' | 'low' | 'no_data'
 }
 
@@ -17,6 +18,7 @@ export interface ChirpsData {
 
 export interface SoilData {
   type: string
+  drainage?: string
 }
 
 export interface ElevationData {
@@ -38,5 +40,7 @@ export interface GeminiAnalysisResult {
   confidence: number
   verdict: Verdict
   reasoning: string
+  contributingFactors?: string[]
+  anomalies?: string[]
   recommendations: string[]
 }

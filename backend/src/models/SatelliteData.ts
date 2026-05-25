@@ -5,6 +5,7 @@ const SatelliteDataSchema = new Schema({
   sar: {
     waterPercentage: { type: Number, default: null },
     backscatterMean: { type: Number, default: null },
+    waterMaskUrl: { type: String, default: null },
     confidence: { type: String, enum: ['high', 'low', 'no_data'], default: 'no_data' },
   },
   ndwi: {
@@ -18,6 +19,7 @@ const SatelliteDataSchema = new Schema({
   },
   soil: {
     type: { type: String, default: 'unknown' },
+    drainage: { type: String, default: 'unknown' },
   },
   elevation: {
     meters: { type: Number, default: 0 },

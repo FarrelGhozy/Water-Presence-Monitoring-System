@@ -19,8 +19,14 @@ __pycache__/
 *.pyc
 python-worker/.env
 
+# graphify
+graphify-out/
+
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+
+.opencode/
+CLAUDE.md

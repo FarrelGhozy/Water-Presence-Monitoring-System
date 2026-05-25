@@ -3,12 +3,15 @@ import {
   createObservation,
   getObservationDetail,
   getAnalysisResult,
+  getSatelliteData,
+  listObservations,
+  deleteObservation,
   ValidationError,
 } from '../services/observation'
 import { processObservation } from '../services/pipeline'
 import { NotFoundError, BadRequestError } from '../middleware/error'
 
-export const observationRouter = new Elysia({ prefix: '/api' })
+export const observationRouter = new Elysia({ prefix: '/api/v1' })
   .post('/observations', async ({ body, set }) => {
     const { latitude, longitude, photo } = body as {
       latitude: string
@@ -45,14 +48,41 @@ export const observationRouter = new Elysia({ prefix: '/api' })
     }),
   })
 
+  .get('/observations', async ({ query }) => {
+    const { status, province, limit, offset } = query as {
+      status?: string
+      province?: string
+      limit?: string
+      offset?: string
+    }
+    return listObservations({
+      status,
+      province,
+      limit: limit ? parseInt(limit) : 20,
+      offset: offset ? parseInt(offset) : 0,
+    })
+  })
+
   .get('/observations/:id', async ({ params }) => {
     const result = await getObservationDetail(params.id)
     if (!result) throw new NotFoundError('Observation not found')
     return result
   })
 
+  .delete('/observations/:id', async ({ params }) => {
+    const deleted = await deleteObservation(params.id)
+    if (!deleted) throw new NotFoundError('Observation not found')
+    return { message: 'Observation deleted' }
+  })
+
   .get('/observations/:id/analysis', async ({ params }) => {
     const result = await getAnalysisResult(params.id)
     if (!result) throw new NotFoundError('Observation not found')
+    return result
+  })
+
+  .get('/observations/:id/satellite-data', async ({ params }) => {
+    const result = await getSatelliteData(params.id)
+    if (!result) throw new NotFoundError('Observation or satellite data not found')
     return result
   })

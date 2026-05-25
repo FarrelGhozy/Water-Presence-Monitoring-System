@@ -3,6 +3,8 @@ export const config = {
   mongoUri: process.env.MONGODB_URI || 'mongodb://localhost:27017/water-monitor-dev',
   geminiApiKey: process.env.GEMINI_API_KEY || '',
   geeWorkerUrl: process.env.GEE_WORKER_URL || 'http://localhost:8000',
+  jwtSecret: process.env.JWT_SECRET || 'dev-secret-change-in-production',
+  redisUrl: process.env.REDIS_URL || '',
   storagePath: process.env.STORAGE_PATH || './uploads',
 } as const
 
