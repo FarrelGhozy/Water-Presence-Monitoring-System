@@ -1,3 +1,5 @@
 export { observationRouter } from './observations'
 export { regionRouter } from './regions'
 export { healthRouter } from './health'
+export { mapRouter } from './map'
+export { statsRouter } from './stats'

@@ -6,7 +6,7 @@ const GEMINI_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'
 
 function buildPrompt(data: SatelliteDataPayload): string {
-  return `You are a hydrology and remote sensing analyst. Analyze this satellite data and respond ONLY in valid JSON with fields: confidence (0-100 number), verdict ("definitive"|"probable"|"possible"|"unlikely"), reasoning (string), recommendations (array of strings).
+  return `You are a hydrology and remote sensing analyst. Analyze this satellite data and respond ONLY in valid JSON with fields: confidence (0-100 number), verdict ("definitive"|"probable"|"possible"|"unlikely"), reasoning (string), contributingFactors (array of strings), anomalies (array of strings), recommendations (array of strings).
 
 SATELLITE DATA INPUT:
 ${JSON.stringify(data, null, 2)}`
@@ -14,7 +14,15 @@ ${JSON.stringify(data, null, 2)}`
 
 function parseResponse(raw: string): GeminiAnalysisResult {
   const cleaned = raw.replace(/```(?:json)?\n?/g, '').trim()
-  return JSON.parse(cleaned)
+  const parsed = JSON.parse(cleaned)
+  return {
+    confidence: parsed.confidence,
+    verdict: parsed.verdict,
+    reasoning: parsed.reasoning,
+    contributingFactors: parsed.contributingFactors || [],
+    anomalies: parsed.anomalies || [],
+    recommendations: parsed.recommendations || [],
+  }
 }
 
 export async function analyzeSatelliteData(
