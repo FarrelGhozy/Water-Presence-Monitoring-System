@@ -28,7 +28,13 @@ const statusMap: Record<string, number> = {
 
 export function handleError(error: unknown, set: { status?: number | string }) {
   const name = error instanceof Error ? error.name : ''
-  set.status = statusMap[name] ?? 500
+
+  const ownStatus =
+    error instanceof Error && 'status' in error
+      ? (error as Error & { status: number }).status
+      : undefined
+
+  set.status = ownStatus ?? statusMap[name] ?? 500
 
   if (set.status === 500) {
     console.error('Unhandled error:', error)
