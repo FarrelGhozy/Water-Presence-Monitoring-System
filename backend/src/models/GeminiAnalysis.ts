@@ -10,7 +10,11 @@ const GeminiAnalysisSchema = new Schema({
     required: true,
   },
   reasoning: { type: String, required: true },
+  contributingFactors: [{ type: String }],
+  anomalies: [{ type: String }],
   recommendations: [{ type: String }],
+  processedAt: { type: Date },
+  processingTimeMs: { type: Number },
   createdAt: { type: Date, default: Date.now },
 })
 
