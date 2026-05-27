@@ -14,8 +14,8 @@ export async function createObservation(
   const lat = parseFloat(latitude)
   const lng = parseFloat(longitude)
 
-  if (isNaN(lat) || isNaN(lng)) {
-    throw new ValidationError('Invalid latitude or longitude')
+  if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    throw new ValidationError('Invalid latitude or longitude. Lat must be -90..90, Lng must be -180..180')
   }
 
   let photoUrl: string | null = null
@@ -41,10 +41,18 @@ export async function listObservations(options: {
   province?: string
   limit?: number
   offset?: number
+  bbox?: string
 }) {
   const filter: Record<string, unknown> = {}
   if (options.status) filter.status = options.status
   if (options.province) filter.province = options.province
+  if (options.bbox) {
+    const [s, w, n, e] = options.bbox.split(',').map(Number)
+    if (!isNaN(s) && !isNaN(w) && !isNaN(n) && !isNaN(e)) {
+      filter.latitude = { $gte: s, $lte: n }
+      filter.longitude = { $gte: w, $lte: e }
+    }
+  }
 
   const [observations, total] = await Promise.all([
     Observation.find(filter)

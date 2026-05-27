@@ -1,5 +1,4 @@
 import { Observation } from '../models/Observation'
-import { GeminiAnalysis } from '../models/GeminiAnalysis'
 import { RegionalIndex } from '../models/RegionalIndex'
 
 export async function getRegionSummary() {

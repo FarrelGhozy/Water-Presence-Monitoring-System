@@ -1,5 +1,6 @@
 import { config } from '../config'
 import { ExternalApiError } from '../middleware/error'
+import { fetchWithTimeout } from '../utils/fetch'
 import type { SatelliteDataPayload, GeminiAnalysisResult } from '../types'
 
 const GEMINI_URL =
@@ -28,14 +29,13 @@ function parseResponse(raw: string): GeminiAnalysisResult {
 export async function analyzeSatelliteData(
   data: SatelliteDataPayload
 ): Promise<GeminiAnalysisResult> {
-  const response = await fetch(`${GEMINI_URL}?key=${config.geminiApiKey}`, {
+  const response = await fetchWithTimeout(`${GEMINI_URL}?key=${config.geminiApiKey}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    signal: AbortSignal.timeout(15_000),
     body: JSON.stringify({
       contents: [{ role: 'user', parts: [{ text: buildPrompt(data) }] }],
     }),
-  })
+  }, 15_000)
 
   if (!response.ok) {
     throw new ExternalApiError(

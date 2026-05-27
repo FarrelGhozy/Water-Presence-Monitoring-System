@@ -3,7 +3,11 @@ import { Observation } from '../models/Observation'
 import { SatelliteData } from '../models/SatelliteData'
 import { GeminiAnalysis } from '../models/GeminiAnalysis'
 import { analyzeSatelliteData } from '../external/gemini'
+import { fetchWithTimeout } from '../utils/fetch'
+import { logger } from '../utils/logger'
 import type { SatelliteDataPayload, GeminiAnalysisResult } from '../types'
+
+const PIPELINE_TIMEOUT_MS = 5 * 60 * 1000
 
 const FALLBACK_ANALYSIS: GeminiAnalysisResult = {
   confidence: 0,
@@ -15,12 +19,11 @@ const FALLBACK_ANALYSIS: GeminiAnalysisResult = {
 }
 
 async function fetchSatelliteData(lat: number, lng: number): Promise<SatelliteDataPayload> {
-  const res = await fetch(`${config.geeWorkerUrl}/analyze`, {
+  const res = await fetchWithTimeout(`${config.geeWorkerUrl}/analyze`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    signal: AbortSignal.timeout(60_000),
     body: JSON.stringify({ lat, lng }),
-  })
+  }, 60_000)
 
   if (!res.ok) {
     throw new Error(`GEE worker error: ${res.status}`)
@@ -31,6 +34,13 @@ async function fetchSatelliteData(lat: number, lng: number): Promise<SatelliteDa
 
 export async function processObservation(observationId: string): Promise<void> {
   const startTime = Date.now()
+
+  const timeout = setTimeout(async () => {
+    await Observation.updateOne(
+      { _id: observationId, status: 'processing' },
+      { $set: { status: 'error' } }
+    )
+  }, PIPELINE_TIMEOUT_MS)
 
   try {
     await Observation.updateOne({ _id: observationId }, { $set: { status: 'processing' } })
@@ -45,7 +55,7 @@ export async function processObservation(observationId: string): Promise<void> {
     try {
       geminiResult = await analyzeSatelliteData(satelliteData)
     } catch (err) {
-      console.error(`Gemini failed for ${observationId}:`, err)
+      logger.error('Gemini analysis failed', { observationId, error: String(err) })
     }
 
     await GeminiAnalysis.create({
@@ -60,11 +70,13 @@ export async function processObservation(observationId: string): Promise<void> {
       { $set: { status: 'completed' } }
     )
   } catch (error) {
-    console.error(`Pipeline failed for ${observationId}:`, error)
+    logger.error('Pipeline failed', { observationId, error: String(error) })
     await Observation.updateOne(
       { _id: observationId },
       { $set: { status: 'error' } }
     )
     throw error
+  } finally {
+    clearTimeout(timeout)
   }
 }

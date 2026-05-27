@@ -4,11 +4,17 @@ import mongoose from 'mongoose'
 import { config, validateConfig } from './config'
 import { observationRouter, regionRouter, healthRouter, mapRouter, statsRouter } from './api'
 import { handleError } from './middleware/error'
+import { logger } from './utils/logger'
 
 validateConfig()
 
+const allowedOrigins = process.env.CORS_ORIGINS?.split(',') || ['http://localhost:5173']
+
 export const app = new Elysia()
-  .use(cors())
+  .use(cors({
+    origin: allowedOrigins,
+    methods: ['GET', 'POST'],
+  }))
   .onError(({ error, set }) => handleError(error, set))
   .use(observationRouter)
   .use(regionRouter)
@@ -17,12 +23,15 @@ export const app = new Elysia()
   .use(statsRouter)
 
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(config.port)
-
   mongoose
     .connect(config.mongoUri)
-    .then(() => console.log(`MongoDB connected: ${config.mongoUri}`))
-    .catch((err) => console.error('MongoDB connection error:', err))
-
-  console.log(`Server running on http://localhost:${config.port}`)
+    .then(() => {
+      logger.info('MongoDB connected', { uri: config.mongoUri })
+      app.listen(config.port)
+      logger.info('Server started', { port: config.port })
+    })
+    .catch((err) => {
+      logger.error('MongoDB connection error', { error: String(err) })
+      process.exit(1)
+    })
 }
