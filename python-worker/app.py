@@ -1,8 +1,14 @@
+import ee
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from services.gee_pipeline import analyze_location
 
 app = FastAPI(title="Water Presence GEE Worker")
+
+
+@app.on_event("startup")
+async def startup():
+    ee.Initialize()
 
 
 class AnalyzeRequest(BaseModel):

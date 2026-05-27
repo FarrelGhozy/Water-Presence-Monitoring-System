@@ -2,7 +2,6 @@ import ee
 
 
 def analyze_location(lat: float, lng: float) -> dict:
-    ee.Initialize()
     point = ee.Geometry.Point([lng, lat])
 
     sar_result = _get_sar_water_mask(point)
@@ -74,29 +73,60 @@ def _get_ndwi_if_available(point):
 
 
 def _get_chirps_rainfall(point):
-    collection = (
+    now = ee.Date.now()
+
+    current = (
         ee.ImageCollection("UCSB-CHG/CHIRPS/DAILY")
         .filterBounds(point)
-        .filterDate(ee.Date.now().advance(-7, "day"), ee.Date.now())
+        .filterDate(now.advance(-7, "day"), now)
+    )
+    previous = (
+        ee.ImageCollection("UCSB-CHG/CHIRPS/DAILY")
+        .filterBounds(point)
+        .filterDate(now.advance(-14, "day"), now.advance(-7, "day"))
     )
 
-    total = collection.sum()
-    sample = total.sample(point, 5000).first()
-    rainfall = sample.get("precipitation").getInfo() if sample else None
+    current_total = current.sum()
+    previous_total = previous.sum()
+
+    current_sample = current_total.sample(point, 5000).first()
+    previous_sample = previous_total.sample(point, 5000).first()
+
+    rainfall = current_sample.get("precipitation").getInfo() if current_sample else None
+    prev_rainfall = previous_sample.get("precipitation").getInfo() if previous_sample else None
+
+    trend = "unknown"
+    if rainfall is not None and prev_rainfall is not None and prev_rainfall > 0:
+        ratio = rainfall / prev_rainfall
+        if ratio > 1.1:
+            trend = "increasing"
+        elif ratio < 0.9:
+            trend = "decreasing"
+        else:
+            trend = "stable"
 
     return {
         "rainfall7day_mm": round(rainfall, 1) if rainfall else 0,
-        "trend": "increasing",
+        "trend": trend,
     }
 
 
 def _get_soil_type(point):
+    USDA_CLASSES = {
+        1: "clay", 2: "silty clay", 3: "silty clay loam", 4: "silt loam",
+        5: "silt", 6: "loam", 7: "sandy clay", 8: "sandy clay loam",
+        9: "sandy loam", 10: "loamy sand", 11: "sand", 12: "organic",
+    }
     soil = (
-        ee.Image("OpenLandMap/SOL/SOL_GRID")
+        ee.Image("OpenLandMap/SOL/SOL_TEXTURE-CLASS_USDA-TT_M/v02")
         .sample(point, 250)
         .first()
     )
-    return {"type": str(soil.get("b0").getInfo()) if soil else "unknown"}
+    if soil:
+        code = soil.get("b0").getInfo()
+        if code is not None:
+            return {"type": USDA_CLASSES.get(int(code), f"class_{code}")}
+    return {"type": "unknown"}
 
 
 def _get_elevation(point):
