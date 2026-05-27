@@ -35,6 +35,7 @@ services:
       - MONGODB_URI=mongodb://mongodb:27017/water-monitor-dev
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - GEE_WORKER_URL=http://python-worker:8000
+      - CORS_ORIGINS=http://localhost:5173
       - JWT_SECRET=dev-secret-change-in-prod
     volumes:
       - ./backend/src:/app/src

@@ -32,7 +32,7 @@ services:
       - MONGODB_URI=mongodb://mongodb:27017/water-monitor-prod
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - GEE_WORKER_URL=http://python-worker:8000
-      - JWT_SECRET=${JWT_SECRET}
+      - CORS_ORIGINS=${CORS_ORIGINS:-https://water-presence.vercel.app}
     depends_on:
       mongodb:
         condition: service_healthy
