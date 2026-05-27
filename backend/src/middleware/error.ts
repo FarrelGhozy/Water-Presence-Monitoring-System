@@ -1,3 +1,5 @@
+import { logger } from '../utils/logger'
+
 export class BadRequestError extends Error {
   constructor(message: string) {
     super(message)
@@ -37,7 +39,7 @@ export function handleError(error: unknown, set: { status?: number | string }) {
   set.status = ownStatus ?? statusMap[name] ?? 500
 
   if (set.status === 500) {
-    console.error('Unhandled error:', error)
+    logger.error('Unhandled error', { error: String(error) })
   }
 
   return { error: error instanceof Error ? error.message : 'Internal server error' }

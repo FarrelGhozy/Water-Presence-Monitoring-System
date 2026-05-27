@@ -10,6 +10,7 @@ import {
 } from '../services/observation'
 import { processObservation } from '../services/pipeline'
 import { NotFoundError, BadRequestError } from '../middleware/error'
+import { logger } from '../utils/logger'
 
 export const observationRouter = new Elysia({ prefix: '/api/v1' })
   .post('/observations', async ({ body, set }) => {
@@ -27,7 +28,7 @@ export const observationRouter = new Elysia({ prefix: '/api/v1' })
       const observation = await createObservation(latitude, longitude, photo)
 
       processObservation(observation._id.toString()).catch((err) =>
-        console.error(`Background pipeline error:`, err)
+        logger.error('Background pipeline error', { observationId: observation._id.toString(), error: String(err) })
       )
 
       set.status = 201
@@ -49,16 +50,18 @@ export const observationRouter = new Elysia({ prefix: '/api/v1' })
   })
 
   .get('/observations', async ({ query }) => {
-    const { status, province, limit, offset } = query as {
+    const { status, province, limit, offset, bbox } = query as {
       status?: string
       province?: string
       limit?: string
       offset?: string
+      bbox?: string
     }
     return listObservations({
       status,
       province,
-      limit: limit ? parseInt(limit) : 20,
+      bbox,
+      limit: limit ? parseInt(limit) : 100,
       offset: offset ? parseInt(offset) : 0,
     })
   })
