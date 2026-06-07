@@ -16,12 +16,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
-    environment:
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/gee-service-account.json
-      - EARTH_ENGINE_PROJECT=water-monitor-project
     volumes:
       - ./python-worker:/app
-      - ./gee-service-account.json:/app/gee-service-account.json:ro
     command: uvicorn app:app --host 0.0.0.0 --port 8000 --reload
 
   backend:
@@ -30,13 +26,13 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
+    env_file:
+      - ./backend/.env
     environment:
       - BUN_ENV=development
       - MONGODB_URI=mongodb://mongodb:27017/water-monitor-dev
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
       - GEE_WORKER_URL=http://python-worker:8000
       - CORS_ORIGINS=http://localhost:5173
-      - JWT_SECRET=dev-secret-change-in-prod
     volumes:
       - ./backend/src:/app/src
       - backend_uploads:/app/uploads

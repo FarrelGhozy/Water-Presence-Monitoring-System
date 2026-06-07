@@ -30,7 +30,8 @@ services:
     environment:
       - BUN_ENV=production
       - MONGODB_URI=mongodb://mongodb:27017/water-monitor-prod
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - AI_MODEL=${AI_MODEL:-openrouter/owl-alpha}
       - GEE_WORKER_URL=http://python-worker:8000
       - CORS_ORIGINS=${CORS_ORIGINS:-https://water-presence.vercel.app}
     depends_on:

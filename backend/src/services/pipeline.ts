@@ -2,7 +2,7 @@ import { config } from '../config'
 import { Observation } from '../models/Observation'
 import { SatelliteData } from '../models/SatelliteData'
 import { GeminiAnalysis } from '../models/GeminiAnalysis'
-import { analyzeSatelliteData } from '../external/gemini'
+import { analyzeSatelliteData } from '../external/openrouter'
 import { fetchWithTimeout } from '../utils/fetch'
 import { logger } from '../utils/logger'
 import type { SatelliteDataPayload, GeminiAnalysisResult } from '../types'
@@ -85,7 +85,7 @@ function ruleBasedAnalysis(data: SatelliteDataPayload): GeminiAnalysisResult {
     verdict,
     reasoning,
     contributingFactors: [...waterIndicators, ...dryIndicators],
-    anomalies: ['Gemini AI tidak tersedia, menggunakan analisis otomatis', ...anomalies],
+    anomalies: ['AI tidak tersedia, menggunakan analisis otomatis', ...anomalies],
     recommendations: pct >= 40
       ? ['Verifikasi lapangan untuk konfirmasi keberadaan air.', 'Pantau perubahan secara berkala.']
       : ['Data satelit tidak menunjukkan indikasi air signifikan.', 'Coba observasi ulang setelah hujan.'],
@@ -129,7 +129,7 @@ export async function processObservation(observationId: string): Promise<void> {
     try {
       geminiResult = await analyzeSatelliteData(satelliteData)
     } catch (err) {
-      logger.error('Gemini analysis failed', { observationId, error: String(err) })
+      logger.error('AI analysis failed', { observationId, error: String(err) })
       geminiResult = ruleBasedAnalysis(satelliteData)
     }
 

@@ -2,8 +2,19 @@ from datetime import datetime, timezone
 
 import ee
 
+MOCK_RESULT = {
+    "sar": {"waterPercentage": 45.2, "backscatterMean": -18.5, "confidence": "high"},
+    "ndwi": {"value": 0.12, "available": True, "cloudCover": 15},
+    "chirps": {"rainfall7day_mm": 120.5, "trend": "increasing"},
+    "soil": {"type": "clay"},
+    "elevation": {"meters": 85.0, "terrain": "hilly"},
+}
 
-def analyze_location(lat: float, lng: float) -> dict:
+
+def analyze_location(lat: float, lng: float, gee_available: bool = True) -> dict:
+    if not gee_available:
+        return dict(MOCK_RESULT)
+
     point = ee.Geometry.Point([lng, lat])
 
     sar_result = _get_sar_water_mask(point)
