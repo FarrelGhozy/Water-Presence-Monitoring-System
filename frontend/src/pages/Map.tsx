@@ -86,8 +86,8 @@ export default function MapPage() {
 
       <MapContainer center={[-2.5, 118]} zoom={5} className="h-full w-full" zoomControl={false}>
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>'
         />
         <MapBoundsUpdater onBoundsChange={handleBoundsChange} />
 

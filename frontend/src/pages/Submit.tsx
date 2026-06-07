@@ -59,8 +59,8 @@ export default function Submit() {
             <div className="h-[400px] md:h-[500px]">
               <MapContainer center={center} zoom={position || gpsPosition ? 15 : 5} className="h-full w-full">
                 <TileLayer
-                  url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                  attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>'
                 />
                 <MapClickHandler onMapClick={handleMapClick} />
                 {(position || gpsPosition) && (
