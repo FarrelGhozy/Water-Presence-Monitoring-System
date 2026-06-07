@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 import ee
 
 
@@ -23,7 +25,7 @@ def _get_sar_water_mask(point):
     collection = (
         ee.ImageCollection("COPERNICUS/S1_GRD")
         .filterBounds(point)
-        .filterDate(ee.Date.now().advance(-7, "day"), ee.Date.now())
+        .filterDate(ee.Date(datetime.now(timezone.utc)).advance(-30, "day"), ee.Date(datetime.now(timezone.utc)))
         .filter(ee.Filter.listContains("transmitterReceiverPolarisation", "VH"))
         .select("VH")
     )
@@ -52,8 +54,8 @@ def _get_ndwi_if_available(point):
     collection = (
         ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
         .filterBounds(point)
-        .filterDate(ee.Date.now().advance(-5, "day"), ee.Date.now())
-        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 20))
+        .filterDate(ee.Date(datetime.now(timezone.utc)).advance(-30, "day"), ee.Date(datetime.now(timezone.utc)))
+        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 30))
     )
 
     if collection.size().getInfo() == 0:
@@ -61,7 +63,7 @@ def _get_ndwi_if_available(point):
 
     image = collection.median()
     ndwi = image.normalizedDifference(["B3", "B8"])
-    sample = ndwi.sample(point, 10).first()
+    sample = ndwi.sample(point, 10, projection='EPSG:4326').first()
     ndwi_val = sample.get("nd").getInfo() if sample else None
     cloud = collection.first().get("CLOUDY_PIXEL_PERCENTAGE").getInfo()
 
@@ -73,7 +75,7 @@ def _get_ndwi_if_available(point):
 
 
 def _get_chirps_rainfall(point):
-    now = ee.Date.now()
+    now = ee.Date(datetime.now(timezone.utc))
 
     current = (
         ee.ImageCollection("UCSB-CHG/CHIRPS/DAILY")
@@ -86,11 +88,14 @@ def _get_chirps_rainfall(point):
         .filterDate(now.advance(-14, "day"), now.advance(-7, "day"))
     )
 
+    if current.size().getInfo() == 0:
+        return {"rainfall7day_mm": 0, "trend": "unknown"}
+
     current_total = current.sum()
     previous_total = previous.sum()
 
-    current_sample = current_total.sample(point, 5000).first()
-    previous_sample = previous_total.sample(point, 5000).first()
+    current_sample = current_total.sample(point, 5000, projection='EPSG:4326').first()
+    previous_sample = previous_total.sample(point, 5000, projection='EPSG:4326').first()
 
     rainfall = current_sample.get("precipitation").getInfo() if current_sample else None
     prev_rainfall = previous_sample.get("precipitation").getInfo() if previous_sample else None
@@ -119,7 +124,7 @@ def _get_soil_type(point):
     }
     soil = (
         ee.Image("OpenLandMap/SOL/SOL_TEXTURE-CLASS_USDA-TT_M/v02")
-        .sample(point, 250)
+        .sample(point, 250, projection='EPSG:4326')
         .first()
     )
     if soil:
@@ -131,7 +136,7 @@ def _get_soil_type(point):
 
 def _get_elevation(point):
     dem = ee.Image("USGS/SRTMGL1_003")
-    sample = dem.sample(point, 30).first()
+    sample = dem.sample(point, 30, projection='EPSG:4326').first()
     elev = sample.get("elevation").getInfo() if sample else None
     meters = round(elev, 1) if elev else 0
 

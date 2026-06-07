@@ -6,6 +6,10 @@ export function useObservation(id: string) {
     queryKey: ['observation', id],
     queryFn: () => api.getObservation(id),
     enabled: !!id,
+    refetchInterval: (query) => {
+      if (query.state.data?.observation.status === 'processing' || query.state.data?.observation.status === 'pending') return 2000
+      return false
+    },
   })
 }
 

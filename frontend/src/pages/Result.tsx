@@ -1,5 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { MapContainer, TileLayer, Marker } from 'react-leaflet'
+import L from 'leaflet'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
@@ -8,6 +10,15 @@ import { ConfidenceGauge } from '../components/ui/ConfidenceGauge'
 import { Badge } from '../components/ui/Badge'
 import { useObservation, useObservationAnalysis } from '../hooks/useObservation'
 import type { SatelliteData } from '../types'
+
+import 'leaflet/dist/leaflet.css'
+
+delete (L.Icon.Default.prototype as any)._getIconUrl
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+})
 
 function SatelliteBreakdownInner({ data }: { data: SatelliteData }) {
   const sources = [
@@ -109,6 +120,25 @@ export default function Result() {
           label={obsData.observation.status === 'completed' ? 'Selesai' : obsData.observation.status}
         />
       </div>
+
+      <Card className="mb-6 overflow-hidden p-0">
+        <div className="h-[250px]">
+          <MapContainer
+            center={[obsData.observation.latitude, obsData.observation.longitude]}
+            zoom={14}
+            className="h-full w-full"
+          >
+            <TileLayer
+              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+            />
+            <Marker position={[obsData.observation.latitude, obsData.observation.longitude]} />
+          </MapContainer>
+        </div>
+        <div className="px-4 py-2 text-xs text-gray-500">
+          {obsData.observation.latitude.toFixed(6)}, {obsData.observation.longitude.toFixed(6)}
+        </div>
+      </Card>
 
       {analysis && (
         <>

@@ -30,10 +30,10 @@ export const api = {
 
   getAnalysis: (id: string) => request<AnalysisResult>(`/observations/${id}/analysis`),
 
-  submitObservation: (latitude: string, longitude: string) =>
+  submitObservation: (lat: string, lng: string) =>
     request<{ observation_id: string; status: string; message: string }>('/observations', {
       method: 'POST',
-      body: JSON.stringify({ latitude, longitude }),
+      body: JSON.stringify({ latitude: lat, longitude: lng }),
     }),
 
   getObservations: (params?: { status?: string; limit?: number; offset?: number; bbox?: string }) => {

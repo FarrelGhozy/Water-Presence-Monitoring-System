@@ -9,16 +9,21 @@ Rancangan-Proposal.fls
 Rancangan-Proposal.fdb_latexmk
 Rancangan-Proposal.synctex.gz
 
+# Env files
+.env
+
 # Backend
 backend/node_modules/
-backend/.env
 backend/uploads/
 
 # Python
 __pycache__/
 *.pyc
-python-worker/.env
-frontend/.env
+.venv/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
 
 # graphify
 graphify-out/
@@ -30,4 +35,3 @@ graphify-out/
 *.swo
 
 .opencode/
-CLAUDE.md
