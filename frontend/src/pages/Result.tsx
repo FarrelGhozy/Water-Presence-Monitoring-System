@@ -129,8 +129,8 @@ export default function Result() {
             className="h-full w-full"
           >
             <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-              attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>'
             />
             <Marker position={[obsData.observation.latitude, obsData.observation.longitude]} />
           </MapContainer>
@@ -147,7 +147,12 @@ export default function Result() {
           </Card>
 
           <Card className="mb-6">
-            <h3 className="text-sm font-semibold text-gray-300 mb-3">{'\u{1F4A1}'} Analisis AI</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-300">{'\u{1F4A1}'} Analisis AI</h3>
+              {analysis.anomalies?.some((a: string) => a.includes('Gemini')) && (
+                <Badge variant="warning" label="AI Tidak Tersedia" />
+              )}
+            </div>
             <p className="text-sm text-gray-400 leading-relaxed">{analysis.reasoning}</p>
             {analysis.recommendations.length > 0 && (
               <div className="mt-4">

@@ -9,13 +9,87 @@ import type { SatelliteDataPayload, GeminiAnalysisResult } from '../types'
 
 const PIPELINE_TIMEOUT_MS = 5 * 60 * 1000
 
-const FALLBACK_ANALYSIS: GeminiAnalysisResult = {
-  confidence: 0,
-  verdict: 'possible',
-  reasoning: 'AI analysis unavailable. Showing raw satellite data.',
-  contributingFactors: [],
-  anomalies: ['Gemini API was unavailable'],
-  recommendations: ['Manual review recommended'],
+function ruleBasedAnalysis(data: SatelliteDataPayload): GeminiAnalysisResult {
+  const sar = data.sar
+  const ndwi = data.ndwi
+  const chirps = data.chirps
+  const elevation = data.elevation
+
+  const waterIndicators: string[] = []
+  const dryIndicators: string[] = []
+  const anomalies: string[] = []
+
+  let waterScore = 0
+  let maxScore = 0
+
+  if (sar.waterPercentage !== null) {
+    maxScore += 40
+    if (sar.waterPercentage > 50) { waterScore += 36; waterIndicators.push('SAR menunjukkan genangan air luas') }
+    else if (sar.waterPercentage > 20) { waterScore += 28; waterIndicators.push('SAR mendeteksi genangan air sedang') }
+    else if (sar.waterPercentage > 5) { waterScore += 16; waterIndicators.push('SAR mendeteksi genangan air kecil') }
+    else { waterScore += 4; dryIndicators.push('SAR tidak mendeteksi genangan signifikan') }
+  } else {
+    maxScore += 10
+    anomalies.push('Data SAR tidak tersedia (mungkin terhalang awan tebal)')
+  }
+
+  if (ndwi.available && ndwi.value !== null) {
+    maxScore += 30
+    if (ndwi.value > 0.3) { waterScore += 27; waterIndicators.push('NDWI tinggi mengindikasikan keberadaan air') }
+    else if (ndwi.value > 0) { waterScore += 18; waterIndicators.push('NDWI positif mengindikasikan kelembaban') }
+    else if (ndwi.value > -0.2) { waterScore += 9; dryIndicators.push('NDWI sedikit negatif (permukaan kering atau vegetasi)') }
+    else { waterScore += 3; dryIndicators.push('NDWI sangat negatif (permukaan kering)') }
+  } else {
+    maxScore += 10
+    anomalies.push('Data NDWI tidak tersedia (awan menutupi area)')
+  }
+
+  if (chirps.rainfall7day_mm > 0) {
+    maxScore += 15
+    if (chirps.rainfall7day_mm > 100) { waterScore += 14; waterIndicators.push('Curah hujan 7 hari sangat tinggi') }
+    else if (chirps.rainfall7day_mm > 50) { waterScore += 10; waterIndicators.push('Curah hujan 7 hari tinggi') }
+    else { waterScore += 6; waterIndicators.push('Curah hujan ringan dalam 7 hari') }
+  } else {
+    maxScore += 5
+    dryIndicators.push('Tidak ada curah hujan signifikan dalam 7 hari')
+  }
+
+  if (elevation.meters < 50) {
+    maxScore += 10
+    waterScore += 7
+    waterIndicators.push('Area dataran rendah (potensi genangan)')
+  } else if (elevation.meters < 200) {
+    maxScore += 10
+    waterScore += 3
+    dryIndicators.push('Area berbukit dengan drainase baik')
+  } else {
+    maxScore += 10
+    dryIndicators.push('Area pegunungan dengan drainase cepat')
+  }
+
+  const pct = maxScore > 0 ? Math.round((waterScore / maxScore) * 100) : 0
+
+  let verdict: GeminiAnalysisResult['verdict'] = 'possible'
+  if (pct >= 65) verdict = 'definitive'
+  else if (pct >= 40) verdict = 'probable'
+  else if (pct >= 15) verdict = 'possible'
+  else verdict = 'unlikely'
+
+  const reasoning = [
+    ...waterIndicators.map(i => `+ ${i}.`),
+    ...dryIndicators.map(i => `- ${i}.`),
+  ].join(' ')
+
+  return {
+    confidence: pct,
+    verdict,
+    reasoning,
+    contributingFactors: [...waterIndicators, ...dryIndicators],
+    anomalies: ['Gemini AI tidak tersedia, menggunakan analisis otomatis', ...anomalies],
+    recommendations: pct >= 40
+      ? ['Verifikasi lapangan untuk konfirmasi keberadaan air.', 'Pantau perubahan secara berkala.']
+      : ['Data satelit tidak menunjukkan indikasi air signifikan.', 'Coba observasi ulang setelah hujan.'],
+  }
 }
 
 async function fetchSatelliteData(lat: number, lng: number): Promise<SatelliteDataPayload> {
@@ -51,11 +125,12 @@ export async function processObservation(observationId: string): Promise<void> {
     const satelliteData = await fetchSatelliteData(obs.latitude, obs.longitude)
     await SatelliteData.create({ observationId, ...satelliteData })
 
-    let geminiResult = FALLBACK_ANALYSIS
+    let geminiResult: GeminiAnalysisResult
     try {
       geminiResult = await analyzeSatelliteData(satelliteData)
     } catch (err) {
       logger.error('Gemini analysis failed', { observationId, error: String(err) })
+      geminiResult = ruleBasedAnalysis(satelliteData)
     }
 
     await GeminiAnalysis.create({
