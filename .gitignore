@@ -18,6 +18,7 @@ backend/uploads/
 __pycache__/
 *.pyc
 python-worker/.env
+frontend/.env
 
 # graphify
 graphify-out/
