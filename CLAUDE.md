@@ -1,11 +1,11 @@
 # Water Presence Monitoring System
 
-Citizen science platform untuk memantau keberadaan air permukaan di Indonesia menggunakan data satelit multi-source (GEE) + analisis AI (Gemini 2.0 Flash).
+Citizen science platform untuk memantau keberadaan air permukaan di Indonesia menggunakan data satelit multi-source (GEE) + analisis AI (OpenRouter / Gemini 2.0 Flash).
 
 ## Arsitektur
 
 ```
-User (GPS) → Backend API (Bun/ElysiaJS) → Python Worker (FastAPI + GEE) → Gemini AI → Hasil
+User (GPS) → Backend API (Bun/ElysiaJS) → Python Worker (FastAPI + GEE) → OpenRouter/Gemini AI → Hasil
                                    ↓
                               MongoDB 7
 ```
@@ -19,7 +19,7 @@ User (GPS) → Backend API (Bun/ElysiaJS) → Python Worker (FastAPI + GEE) → 
 | Backend | Bun + ElysiaJS + TypeScript |
 | Python Worker | FastAPI + earthengine-api |
 | Database | MongoDB 7 (Mongoose) |
-| AI | Gemini 2.0 Flash (REST API, text-only) |
+| AI | OpenRouter / Gemini 2.0 Flash (REST API, text-only) |
 | Container | Docker Compose |
 | Frontend | React 19 + Vite + TypeScript + Leaflet + Zustand + React Query + Tailwind CSS |
 
@@ -33,7 +33,7 @@ User (GPS) → Backend API (Bun/ElysiaJS) → Python Worker (FastAPI + GEE) → 
 │   │   ├── api/               # Route handlers (health, observations, regions)
 │   │   ├── services/          # Business logic (pipeline.ts, gemini.ts)
 │   │   ├── models/            # Mongoose schemas (Observation, SatelliteData, GeminiAnalysis)
-│   │   ├── external/          # Gemini API client
+│   │   ├── external/          # AI API client (OpenRouter)
 │   │   ├── utils/             # Storage utility
 │   │   ├── middleware/        # Error handling
 │   │   └── types/             # TypeScript type definitions
@@ -105,7 +105,7 @@ cd backend && bunx tsc --noEmit
 - **NO photo upload** — input hanya GPS (lat, lng). Tidak ada komponen kamera/foto.
 - **NO PostgreSQL/Redis/Bull** — hanya MongoDB, pipeline sync sequential.
 - **Sentinel-1 SAR adalah sumber primer** — Indonesia memiliki tutupan awan 70-90%.
-- **Gemini sebagai AI analyst** — bukan weighted formula. Gemini menerima structured JSON dari 5 sumber satelit dan memberikan penilaian natural language.
+- **OpenRouter/Gemini sebagai AI analyst** — bukan weighted formula. AI menerima structured JSON dari 5 sumber satelit dan memberikan penilaian natural language.
 - **Bahasa Indonesia** untuk teks yang dilihat pengguna.
 - **Tidak perlu test** untuk MVP — belum ada test file, fokus pada fitur yang berjalan.
 - **GEE mock mode** — python-worker punya fallback mock data jika GEE tidak tersedia.
@@ -122,7 +122,7 @@ cd backend && bunx tsc --noEmit
 
 - `MVP.md` — dokumen scope utama, baca ini untuk konteks lengkap
 - `backend/src/services/pipeline.ts` — orchestrator pipeline utama
-- `backend/src/external/gemini.ts` — integrasi Gemini API
+- `backend/src/external/openrouter.ts` — integrasi AI API (OpenRouter)
 - `python-worker/services/gee_pipeline.py` — GEE 5-source pipeline
 - `WATER_PRESENCE_SYSTEM_DESIGN.md` — arsitektur sistem lengkap
 - `WATER_PRESENCE_ROADMAP.md` — roadmap 3 minggu + strategi kompetisi
