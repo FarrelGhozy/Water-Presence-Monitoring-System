@@ -77,7 +77,7 @@ export default function MapPage() {
   const observations = obsData?.observations ?? []
 
   return (
-    <div className="h-[calc(100vh-56px)] relative">
+    <div className="h-[calc(100vh-56px)] relative z-0">
       {regionsLoading && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-surface-dark/50">
           <Spinner className="w-8 h-8" />

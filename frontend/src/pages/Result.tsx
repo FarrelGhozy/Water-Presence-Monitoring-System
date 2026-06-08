@@ -122,7 +122,7 @@ export default function Result() {
         />
       </div>
 
-      <Card className="mb-6 overflow-hidden p-0">
+      <Card className="mb-6 overflow-hidden p-0 relative z-0">
         <div className="h-[250px]">
           <MapContainer
             center={[obsData.observation.latitude, obsData.observation.longitude]}

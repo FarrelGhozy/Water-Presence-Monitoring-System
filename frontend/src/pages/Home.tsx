@@ -91,7 +91,7 @@ export default function Home() {
           )}
 
           {!isLoading && !error && (
-            <div className="h-[400px] md:h-[500px] rounded-lg overflow-hidden">
+            <div className="h-[400px] md:h-[500px] rounded-lg overflow-hidden relative z-0">
               {geoJsonData ? (
                 <MapContainer center={[-2.5, 118]} zoom={5} className="h-full w-full" zoomControl={false}>
                   <TileLayer

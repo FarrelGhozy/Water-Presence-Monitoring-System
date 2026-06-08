@@ -56,7 +56,7 @@ export default function Submit() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="md:col-span-2">
-          <Card className="overflow-hidden p-0">
+          <Card className="overflow-hidden p-0 relative z-0">
             <div className="h-[400px] md:h-[500px]">
               <MapContainer center={center} zoom={position || gpsPosition ? 15 : 5} className="h-full w-full">
                 <TileLayer
