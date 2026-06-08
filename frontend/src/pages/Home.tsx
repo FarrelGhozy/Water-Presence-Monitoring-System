@@ -11,6 +11,12 @@ import { useObservations } from '../hooks/useObservation'
 import type { ObservationSummary } from '../types'
 import 'leaflet/dist/leaflet.css'
 
+const GEOJSON_PROVINCE_MAP: Record<string, string> = {
+  'Jakarta Raya': 'DKI Jakarta',
+  'Bangka-Belitung': 'Bangka Belitung',
+  Yogyakarta: 'DI Yogyakarta',
+}
+
 const statusColors: Record<string, string> = {
   completed: '#22c55e',
   processing: '#3b82f6',
@@ -119,7 +125,9 @@ export default function Home() {
                     key={provincesWithData}
                     data={geoJsonData}
                     style={(feature) => {
-                      const province = regionsMap.get((feature?.properties?.NAME_1 || '').toLowerCase())
+                      const rawName = feature?.properties?.state || ''
+                      const mappedName = GEOJSON_PROVINCE_MAP[rawName] || rawName
+                      const province = regionsMap.get(mappedName.toLowerCase())
                       return {
                         fillColor: getConfidenceColor(province?.waterPercentage),
                         weight: 1,
@@ -129,10 +137,11 @@ export default function Home() {
                       }
                     }}
                     onEachFeature={(feature, layer) => {
-                      const name = feature.properties?.NAME_1 || ''
-                      const region = regionsMap.get(name.toLowerCase())
+                      const rawName = feature.properties?.state || ''
+                      const mappedName = GEOJSON_PROVINCE_MAP[rawName] || rawName
+                      const region = regionsMap.get(mappedName.toLowerCase())
                       layer.bindTooltip(
-                        `<b>${name}</b><br/>Observasi: ${region?.observationCount ?? 0}<br/>Air: ${region?.waterPercentage !== undefined ? `${region.waterPercentage}%` : 'N/A'}`,
+                        `<b>${rawName}</b><br/>Observasi: ${region?.observationCount ?? 0}<br/>Air: ${region?.waterPercentage !== undefined ? `${region.waterPercentage}%` : 'N/A'}`,
                         { className: 'bg-gray-900 text-gray-200 border border-gray-700 text-sm' }
                       )
                     }}
