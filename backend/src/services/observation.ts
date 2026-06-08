@@ -1,16 +1,9 @@
 import { Observation } from '../models/Observation'
 import { SatelliteData } from '../models/SatelliteData'
 import { GeminiAnalysis } from '../models/GeminiAnalysis'
-import { savePhoto } from '../utils/storage'
 import type { ObservationStatus } from '../types'
 
-const PHOTO_MAX_BYTES = 5_000_000
-
-export async function createObservation(
-  latitude: string,
-  longitude: string,
-  photo?: File
-) {
+export async function createObservation(latitude: string, longitude: string) {
   const lat = parseFloat(latitude)
   const lng = parseFloat(longitude)
 
@@ -18,20 +11,9 @@ export async function createObservation(
     throw new ValidationError('Invalid latitude or longitude. Lat must be -90..90, Lng must be -180..180')
   }
 
-  let photoUrl: string | null = null
-
-  if (photo) {
-    const buffer = Buffer.from(await photo.arrayBuffer())
-    if (buffer.length > PHOTO_MAX_BYTES) {
-      throw new ValidationError('Photo must be < 5MB')
-    }
-    photoUrl = await savePhoto(buffer)
-  }
-
   return Observation.create({
     latitude: lat,
     longitude: lng,
-    photoUrl,
     status: 'pending',
   })
 }
@@ -81,7 +63,6 @@ export async function getObservationDetail(id: string) {
       latitude: obs.latitude,
       longitude: obs.longitude,
       province: obs.province,
-      photoUrl: obs.photoUrl,
       timestamp: obs.timestamp,
       status: obs.status,
     },

@@ -8,6 +8,7 @@ import Home from './pages/Home'
 import Submit from './pages/Submit'
 import Result from './pages/Result'
 import MapPage from './pages/Map'
+import NotFound from './pages/NotFound'
 import './index.css'
 
 const queryClient = new QueryClient({
@@ -33,6 +34,7 @@ export default function App() {
                 <Route path="/submit" element={<Submit />} />
                 <Route path="/result/:id" element={<Result />} />
                 <Route path="/map" element={<MapPage />} />
+                <Route path="*" element={<NotFound />} />
               </Routes>
             </PageContainer>
             <Footer />

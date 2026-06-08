@@ -2,7 +2,6 @@ import { model, Schema } from 'mongoose'
 import type { ObservationStatus } from '../types'
 
 const ObservationSchema = new Schema({
-  photoUrl: { type: String, default: null },
   latitude: { type: Number, required: true },
   longitude: { type: Number, required: true },
   province: { type: String, default: null },

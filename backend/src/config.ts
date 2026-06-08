@@ -4,7 +4,6 @@ export const config = {
   openrouterApiKey: process.env.OPENROUTER_API_KEY || '',
   aiModel: process.env.AI_MODEL || 'openrouter/owl-alpha',
   geeWorkerUrl: process.env.GEE_WORKER_URL || 'http://localhost:8000',
-  storagePath: process.env.STORAGE_PATH || './uploads',
 } as const
 
 export function validateConfig(): void {

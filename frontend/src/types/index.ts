@@ -13,7 +13,6 @@ export interface ObservationDetail {
     latitude: number
     longitude: number
     province: string | null
-    photoUrl: string | null
     timestamp: string
     status: 'pending' | 'processing' | 'completed' | 'error'
   }

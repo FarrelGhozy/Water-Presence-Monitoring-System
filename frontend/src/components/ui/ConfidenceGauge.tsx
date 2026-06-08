@@ -12,10 +12,10 @@ function getColor(value: number): string {
 
 function getVerdictLabel(verdict: string): string {
   const map: Record<string, string> = {
-    definitive: 'DEFINITIVE',
-    probable: 'PROBABLE',
-    possible: 'POSSIBLE',
-    unlikely: 'UNLIKELY',
+    definitive: 'PASTI',
+    probable: 'MUNGKIN',
+    possible: 'MUNGKIN',
+    unlikely: 'TIDAK MUNGKIN',
   }
   return map[verdict] || verdict.toUpperCase()
 }

@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker } from 'react-leaflet'
 import L from 'leaflet'
 import { Card } from '../components/ui/Card'
@@ -50,7 +50,7 @@ function SatelliteBreakdownInner({ data }: { data: SatelliteData }) {
 }
 
 export default function Result() {
-  const id = window.location.pathname.split('/result/')[1]
+  const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data: obsData, isLoading: obsLoading, error: obsError } = useObservation(id)
   const { data: analysisData } = useObservationAnalysis(id)

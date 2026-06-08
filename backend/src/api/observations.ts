@@ -14,10 +14,9 @@ import { logger } from '../utils/logger'
 
 export const observationRouter = new Elysia({ prefix: '/api/v1' })
   .post('/observations', async ({ body, set }) => {
-    const { latitude, longitude, photo } = body as {
+    const { latitude, longitude } = body as {
       latitude: string
       longitude: string
-      photo?: File
     }
 
     if (!latitude || !longitude) {
@@ -25,7 +24,7 @@ export const observationRouter = new Elysia({ prefix: '/api/v1' })
     }
 
     try {
-      const observation = await createObservation(latitude, longitude, photo)
+      const observation = await createObservation(latitude, longitude)
 
       processObservation(observation._id.toString()).catch((err) =>
         logger.error('Background pipeline error', { observationId: observation._id.toString(), error: String(err) })
@@ -45,7 +44,6 @@ export const observationRouter = new Elysia({ prefix: '/api/v1' })
     body: t.Object({
       latitude: t.String(),
       longitude: t.String(),
-      photo: t.Optional(t.File()),
     }),
   })
 
