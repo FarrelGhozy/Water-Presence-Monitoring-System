@@ -2,8 +2,10 @@ import { config } from '../config'
 import { Observation } from '../models/Observation'
 import { SatelliteData } from '../models/SatelliteData'
 import { GeminiAnalysis } from '../models/GeminiAnalysis'
+import { RegionalIndex } from '../models/RegionalIndex'
 import { analyzeSatelliteData } from '../external/openrouter'
 import { fetchWithTimeout } from '../utils/fetch'
+import { latLngToProvince } from '../utils/geocode'
 import { logger } from '../utils/logger'
 import type { SatelliteDataPayload, GeminiAnalysisResult } from '../types'
 
@@ -140,10 +142,41 @@ export async function processObservation(observationId: string): Promise<void> {
       processingTimeMs: Date.now() - startTime,
     })
 
-    await Observation.updateOne(
-      { _id: observationId },
-      { $set: { status: 'completed' } }
-    )
+    const province = latLngToProvince(obs.latitude, obs.longitude)
+    if (province) {
+      await Observation.updateOne({ _id: observationId }, { $set: { province, status: 'completed' } })
+
+      const completedInProvince = await GeminiAnalysis.aggregate([
+        { $lookup: { from: 'observations', localField: 'observationId', foreignField: '_id', as: 'obs' } },
+        { $unwind: '$obs' },
+        { $match: { 'obs.province': province, 'obs.status': 'completed' } },
+        { $group: { _id: null, avgConfidence: { $avg: '$confidence' }, count: { $sum: 1 } } },
+      ])
+
+      const avg = completedInProvince[0]?.avgConfidence ?? geminiResult.confidence
+      const count = completedInProvince[0]?.count ?? 1
+
+      await RegionalIndex.updateOne(
+        { province },
+        {
+          $set: {
+            waterIndex: Math.round(avg),
+            waterPercentage: Math.round(avg * 0.8),
+            observationCount: count,
+            lastUpdated: new Date(),
+          },
+          $push: {
+            historicalTrend: {
+              $each: [{ date: new Date(), waterIndex: Math.round(avg) }],
+              $slice: -30,
+            },
+          },
+        },
+        { upsert: true }
+      )
+    } else {
+      await Observation.updateOne({ _id: observationId }, { $set: { status: 'completed' } })
+    }
   } catch (error) {
     logger.error('Pipeline failed', { observationId, error: String(error) })
     await Observation.updateOne(
