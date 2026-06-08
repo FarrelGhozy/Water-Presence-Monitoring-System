@@ -7,7 +7,7 @@ import { fetchWithTimeout } from '../utils/fetch'
 import { logger } from '../utils/logger'
 import type { SatelliteDataPayload, GeminiAnalysisResult } from '../types'
 
-const PIPELINE_TIMEOUT_MS = 5 * 60 * 1000
+const PIPELINE_TIMEOUT_MS = 2 * 60 * 1000
 
 function ruleBasedAnalysis(data: SatelliteDataPayload): GeminiAnalysisResult {
   const sar = data.sar

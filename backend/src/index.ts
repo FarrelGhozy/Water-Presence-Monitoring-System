@@ -16,6 +16,18 @@ export const app = new Elysia()
     methods: ['GET', 'POST'],
   }))
   .onError(({ error, set }) => handleError(error, set))
+  .onRequest((ctx) => {
+    (ctx as any)._startTime = Date.now()
+  })
+  .onAfterHandle((ctx) => {
+    const duration = Date.now() - ((ctx as any)._startTime || Date.now())
+    logger.info('request', {
+      method: ctx.request.method,
+      path: ctx.request.url,
+      status: ctx.set.status || 200,
+      duration: `${duration}ms`,
+    })
+  })
   .use(observationRouter)
   .use(regionRouter)
   .use(healthRouter)
