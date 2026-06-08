@@ -1,12 +1,22 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MapContainer, TileLayer, GeoJSON, type GeoJSONProps } from 'react-leaflet'
+import { MapContainer, TileLayer, GeoJSON, Marker, type GeoJSONProps } from 'react-leaflet'
+import L from 'leaflet'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Skeleton } from '../components/ui/Skeleton'
 import { EmptyState } from '../components/ui/EmptyState'
 import { useRegions } from '../hooks/useRegions'
+import { useObservations } from '../hooks/useObservation'
+import type { ObservationSummary } from '../types'
 import 'leaflet/dist/leaflet.css'
+
+const statusColors: Record<string, string> = {
+  completed: '#22c55e',
+  processing: '#3b82f6',
+  error: '#ef4444',
+  pending: '#9ca3af',
+}
 
 function getConfidenceColor(avg: number | undefined): string {
   if (avg === undefined) return '#334155'
@@ -16,9 +26,15 @@ function getConfidenceColor(avg: number | undefined): string {
   return '#22c55e'
 }
 
+function getFillOpacity(avg: number | undefined): number {
+  if (avg === undefined) return 0.15
+  return 0.7
+}
+
 export default function Home() {
   const navigate = useNavigate()
   const { data, isLoading, error } = useRegions()
+  const { data: obsData } = useObservations({ limit: 200 })
   const [geoJsonData, setGeoJsonData] = useState<GeoJSONProps['data'] | null>(null)
 
   useEffect(() => {
@@ -29,6 +45,7 @@ export default function Home() {
   }, [])
 
   const regionsMap = new Map(data?.regions?.map((r) => [r.province.toLowerCase(), r]) || [])
+  const observations = obsData?.observations ?? []
 
   const totalObservations = data?.regions?.reduce((sum, r) => sum + r.observationCount, 0) ?? 0
   const provincesWithData = data?.regions?.length ?? 0
@@ -108,7 +125,7 @@ export default function Home() {
                         weight: 1,
                         opacity: 0.8,
                         color: '#1e293b',
-                        fillOpacity: 0.7,
+                        fillOpacity: getFillOpacity(province?.waterPercentage),
                       }
                     }}
                     onEachFeature={(feature, layer) => {
@@ -120,6 +137,18 @@ export default function Home() {
                       )
                     }}
                   />
+                  {observations.map((obs: ObservationSummary) => (
+                    <Marker
+                      key={obs._id}
+                      position={[obs.latitude, obs.longitude]}
+                      icon={L.divIcon({
+                        className: 'border-0 bg-transparent',
+                        html: `<div style="width:10px;height:10px;border-radius:50%;background:${statusColors[obs.status] || '#9ca3af'};border:2px solid #0a0f1a;box-shadow:0 0 4px rgba(0,0,0,0.5)"></div>`,
+                        iconSize: [10, 10],
+                        iconAnchor: [5, 5],
+                      })}
+                    />
+                  ))}
                 </MapContainer>
               ) : (
                 <div className="flex items-center justify-center h-full text-gray-500">
