@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
+import { Icon } from '../ui/Icon'
 
 const links = [
   { to: '/', label: 'Beranda' },
@@ -13,7 +14,7 @@ export function Navbar() {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-surface-dark/80 backdrop-blur-md border-b border-gray-800">
       <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 text-brand-500 font-bold text-lg">
-          <span className="text-xl">&#x1F30A;</span>
+          <Icon name="water" className="text-brand-400" />
           Water Presence
         </Link>
         <div className="flex items-center gap-1">

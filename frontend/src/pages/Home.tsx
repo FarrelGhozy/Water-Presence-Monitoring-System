@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, GeoJSON, type GeoJSONProps } from 'react-leafl
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Skeleton } from '../components/ui/Skeleton'
+import { Icon } from '../components/ui/Icon'
 import { EmptyState } from '../components/ui/EmptyState'
 import { useRegions } from '../hooks/useRegions'
 import 'leaflet/dist/leaflet.css'
@@ -83,7 +84,7 @@ export default function Home() {
 
           {error && (
             <EmptyState
-              icon={'\u26A0\uFE0F'}
+              icon="warning"
               title="Gagal memuat data wilayah"
               description="Tidak dapat memuat data peta. Periksa koneksi internet Anda."
               action={{ label: 'Coba Lagi', onClick: () => window.location.reload() }}

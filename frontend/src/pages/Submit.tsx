@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
 import L, { type LeafletMouseEvent } from 'leaflet'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
+import { Icon } from '../components/ui/Icon'
 import { useGeolocation } from '../hooks/useGeolocation'
 import { useSubmitObservation } from '../hooks/useObservation'
 import 'leaflet/dist/leaflet.css'
@@ -84,7 +85,7 @@ url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               onClick={handleUseGPS}
               loading={gpsLoading}
             >
-              {gpsLoading ? 'Mendeteksi...' : '\u{1F4CD} Gunakan Lokasi Saya'}
+              {gpsLoading ? 'Mendeteksi...' : <span className="flex items-center gap-2"><Icon name="pin" />Gunakan Lokasi Saya</span>}
             </Button>
             {gpsError && (
               <p className="text-xs text-red-400 mb-3">{gpsError}</p>
