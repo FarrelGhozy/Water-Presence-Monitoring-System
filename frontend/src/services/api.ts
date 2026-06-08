@@ -1,6 +1,7 @@
 import type { ObservationDetail, AnalysisResult, RegionData, ObservationSummary } from '../types'
 
 const BASE_URL = import.meta.env.VITE_API_URL || '/api/v1'
+const API_KEY = import.meta.env.VITE_API_KEY || ''
 
 export class ApiError extends Error {
   status: number
@@ -12,8 +13,10 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (API_KEY) headers['x-api-key'] = API_KEY
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     ...options,
   })
   if (!res.ok) {
