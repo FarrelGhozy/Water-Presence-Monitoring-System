@@ -37,12 +37,14 @@ export default function Submit() {
 
   const center = gpsPosition || position || { lat: -2.5, lng: 118 }
 
+  const activePosition = position || gpsPosition
+
   const handleSubmit = async () => {
-    if (!position) return
+    if (!activePosition) return
     try {
       const result = await submitMutation.mutateAsync({
-        lat: String(position.lat),
-        lng: String(position.lng),
+        lat: String(activePosition.lat),
+        lng: String(activePosition.lng),
       })
       navigate(`/result/${result.observation_id}`)
     } catch {
@@ -92,15 +94,15 @@ url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             )}
           </Card>
 
-          {position && (
+          {activePosition && (
             <Card>
               <h3 className="text-sm font-semibold text-gray-300 mb-3">Koordinat</h3>
               <div className="space-y-1 text-sm">
                 <p className="text-gray-400">
-                  Latitude: <span className="text-gray-200 font-mono">{position.lat.toFixed(6)}</span>
+                  Latitude: <span className="text-gray-200 font-mono">{activePosition.lat.toFixed(6)}</span>
                 </p>
                 <p className="text-gray-400">
-                  Longitude: <span className="text-gray-200 font-mono">{position.lng.toFixed(6)}</span>
+                  Longitude: <span className="text-gray-200 font-mono">{activePosition.lng.toFixed(6)}</span>
                 </p>
               </div>
               <Button
