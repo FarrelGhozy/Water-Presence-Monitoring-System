@@ -1,5 +1,6 @@
 import { Elysia } from 'elysia'
 import { cors } from '@elysiajs/cors'
+import { rateLimit } from 'elysia-rate-limit'
 import mongoose from 'mongoose'
 import { config, validateConfig } from './config'
 import { observationRouter, regionRouter, healthRouter, mapRouter, statsRouter } from './api'
@@ -13,7 +14,15 @@ const allowedOrigins = process.env.CORS_ORIGINS?.split(',') || ['http://localhos
 export const app = new Elysia()
   .use(cors({
     origin: allowedOrigins,
-    methods: ['GET', 'POST'],
+    methods: ['GET', 'POST', 'DELETE'],
+  }))
+  .use(rateLimit({
+    max: config.rateLimitMax,
+    duration: config.rateLimitWindowMs,
+    errorResponse: new Response(JSON.stringify({ error: 'Too many requests, please try again later' }), {
+      status: 429,
+      headers: { 'Content-Type': 'application/json' },
+    }),
   }))
   .onError(({ error, set }) => handleError(error, set))
   .onRequest((ctx) => {

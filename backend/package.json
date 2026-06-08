@@ -9,8 +9,9 @@
     "test": "NODE_ENV=test bun test"
   },
   "dependencies": {
-    "elysia": "^1.1.0",
     "@elysiajs/cors": "^1.1.0",
+    "elysia": "^1.1.0",
+    "elysia-rate-limit": "^4.6.2",
     "mongoose": "^8.4.0"
   },
   "devDependencies": {

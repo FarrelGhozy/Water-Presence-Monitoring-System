@@ -10,10 +10,14 @@ import {
 } from '../services/observation'
 import { processObservation } from '../services/pipeline'
 import { NotFoundError, BadRequestError } from '../middleware/error'
+import { requireAuth } from '../middleware/auth'
 import { logger } from '../utils/logger'
 
 export const observationRouter = new Elysia({ prefix: '/api/v1' })
-  .post('/observations', async ({ body, set }) => {
+  .post('/observations', async ({ request, body, set }) => {
+    const authError = requireAuth({ request, set })
+    if (authError) return authError
+
     const { latitude, longitude } = body as {
       latitude: string
       longitude: string
@@ -70,7 +74,10 @@ export const observationRouter = new Elysia({ prefix: '/api/v1' })
     return result
   })
 
-  .delete('/observations/:id', async ({ params }) => {
+  .delete('/observations/:id', async ({ request, params, set }) => {
+    const authError = requireAuth({ request, set })
+    if (authError) return authError
+
     const deleted = await deleteObservation(params.id)
     if (!deleted) throw new NotFoundError('Observation not found')
     return { message: 'Observation deleted' }
