@@ -51,7 +51,7 @@ function SatelliteBreakdownInner({ data }: { data: SatelliteData }) {
 }
 
 export default function Result() {
-  const { id } = useParams<{ id: string }>()
+  const { id = '' } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data: obsData, isLoading: obsLoading, error: obsError } = useObservation(id)
   const { data: analysisData } = useObservationAnalysis(id)

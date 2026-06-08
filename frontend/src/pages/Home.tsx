@@ -4,7 +4,6 @@ import { MapContainer, TileLayer, GeoJSON, type GeoJSONProps } from 'react-leafl
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Skeleton } from '../components/ui/Skeleton'
-import { Icon } from '../components/ui/Icon'
 import { EmptyState } from '../components/ui/EmptyState'
 import { useRegions } from '../hooks/useRegions'
 import 'leaflet/dist/leaflet.css'
