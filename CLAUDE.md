@@ -21,7 +21,7 @@ User (GPS) → Backend API (Bun/ElysiaJS) → Python Worker (FastAPI + GEE) → 
 | Database | MongoDB 7 (Mongoose) |
 | AI | Gemini 2.0 Flash (REST API, text-only) |
 | Container | Docker Compose |
-| Frontend | React 19 + Vite + TypeScript + Leaflet + Zustand + React Query + Tailwind CSS (PLANNED) |
+| Frontend | React 19 + Vite + TypeScript + Leaflet + Zustand + React Query + Tailwind CSS |
 
 ## Struktur Proyek
 
@@ -45,7 +45,7 @@ User (GPS) → Backend API (Bun/ElysiaJS) → Python Worker (FastAPI + GEE) → 
 │   │   └── gee_pipeline.py    # 5-source GEE pipeline + mock mode
 │   ├── requirements.txt
 │   └── Dockerfile
-├── frontend/               # React + Vite (BELUM DIBANGUN)
+├── frontend/               # React + Vite (SUDAH DIBANGUN)
 ├── docker-compose.dev.yml
 ├── docker-compose.prod.yml
 └── MVP.md                  # Dokumen scope utama — baca ini dulu
@@ -115,7 +115,7 @@ cd backend && bunx tsc --noEmit
 - **Backend**: SELESAI dibangun (ElysiaJS + Mongoose + Gemini + pipeline)
 - **Python Worker**: SELESAI dibangun (FastAPI + GEE 5-source + mock mode)
 - **Docker Compose**: SELESAI (dev + prod)
-- **Frontend**: BELUM DIBANGUN — prioritas selanjutnya
+- **Frontend**: SELESAI dibangun (React 19 + Vite + Leaflet + Zustand)
 - **Dokumen**: SELESAI (proposal, system design, implementation guide, roadmap, MVP)
 
 ## File Referensi Utama
