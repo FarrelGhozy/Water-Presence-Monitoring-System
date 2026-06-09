@@ -1,8 +1,10 @@
 import logging
+import traceback
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from services.gee_pipeline import analyze_location
 
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Water Presence GEE Worker")
@@ -36,6 +38,7 @@ async def analyze(req: AnalyzeRequest):
         result = analyze_location(req.lat, req.lng, gee_available)
         return result
     except Exception as e:
+        logger.error("Analyze error: %s\n%s", e, traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 

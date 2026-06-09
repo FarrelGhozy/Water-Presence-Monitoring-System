@@ -15,7 +15,7 @@ services:
       context: ./python-worker
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "8001:8000"
     volumes:
       - ./python-worker:/app
     command: uvicorn app:app --host 0.0.0.0 --port 8000 --reload

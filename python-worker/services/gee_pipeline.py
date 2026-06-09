@@ -1,19 +1,56 @@
 from datetime import datetime, timezone
+import hashlib
 
 import ee
 
-MOCK_RESULT = {
-    "sar": {"waterPercentage": 45.2, "backscatterMean": -18.5, "confidence": "high"},
-    "ndwi": {"value": 0.12, "available": True, "cloudCover": 15},
-    "chirps": {"rainfall7day_mm": 120.5, "trend": "increasing"},
-    "soil": {"type": "clay"},
-    "elevation": {"meters": 85.0, "terrain": "hilly"},
-}
+
+def _seed_from_coords(lat: float, lng: float) -> int:
+    h = hashlib.sha256(f"{lat:.4f},{lng:.4f}".encode()).hexdigest()
+    return int(h[:8], 16)
+
+
+def _mock_sar(seed: int) -> dict:
+    wp = ((seed >> 0) & 0xFF) / 255 * 70 + 5
+    bm = -((seed >> 8) & 0xFF) / 255 * 15 - 10
+    return {"waterPercentage": round(wp, 1), "backscatterMean": round(bm, 2), "confidence": "high"}
+
+
+def _mock_ndwi(seed: int) -> dict:
+    val = ((seed >> 16) & 0xFF) / 255 * 0.6 - 0.2
+    return {"value": round(val, 3), "available": True, "cloudCover": (seed >> 24) & 0x3F}
+
+
+def _mock_chirps(seed: int) -> dict:
+    mm = ((seed >> 4) & 0xFF) / 255 * 200
+    trends = ["stable", "increasing", "decreasing", "stable"]
+    return {"rainfall7day_mm": round(mm, 1), "trend": trends[(seed >> 12) & 0x3]}
+
+
+def _mock_soil(seed: int) -> dict:
+    types = ["clay", "loam", "sandy loam", "silt", "silty clay", "sand", "clay loam"]
+    return {"type": types[(seed >> 20) & 0x7]}
+
+
+def _mock_elevation(seed: int) -> dict:
+    meters = ((seed >> 6) & 0xFF) / 255 * 300 + 2
+    terrain = "flat"
+    if meters >= 50:
+        terrain = "hilly"
+    if meters >= 200:
+        terrain = "mountainous"
+    return {"meters": round(meters, 1), "terrain": terrain}
 
 
 def analyze_location(lat: float, lng: float, gee_available: bool = True) -> dict:
     if not gee_available:
-        return dict(MOCK_RESULT)
+        seed = _seed_from_coords(lat, lng)
+        return {
+            "sar": _mock_sar(seed),
+            "ndwi": _mock_ndwi(seed),
+            "chirps": _mock_chirps(seed),
+            "soil": _mock_soil(seed),
+            "elevation": _mock_elevation(seed),
+        }
 
     point = ee.Geometry.Point([lng, lat])
 

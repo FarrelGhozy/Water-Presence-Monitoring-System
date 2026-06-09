@@ -86,7 +86,7 @@ function ruleBasedAnalysis(data: SatelliteDataPayload): GeminiAnalysisResult {
     confidence: pct,
     verdict,
     reasoning,
-    contributingFactors: [...waterIndicators, ...dryIndicators],
+    contributingFactors: [...waterIndicators, ...dryIndicators].filter(f => typeof f === "string"),
     anomalies: ['AI tidak tersedia, menggunakan analisis otomatis', ...anomalies],
     recommendations: pct >= 40
       ? ['Verifikasi lapangan untuk konfirmasi keberadaan air.', 'Pantau perubahan secara berkala.']
