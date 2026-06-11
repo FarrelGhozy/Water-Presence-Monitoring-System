@@ -40,7 +40,6 @@ export interface GeminiAnalysis {
 export interface RegionData {
   province: string
   waterIndex: number
-  waterPercentage: number
   observationCount: number
   lastUpdated: string
 }

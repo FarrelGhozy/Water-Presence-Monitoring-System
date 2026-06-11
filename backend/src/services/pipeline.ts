@@ -161,7 +161,6 @@ export async function processObservation(observationId: string): Promise<void> {
         {
           $set: {
             waterIndex: Math.round(avg),
-            waterPercentage: Math.round(avg * 0.8),
             observationCount: count,
             lastUpdated: new Date(),
           },

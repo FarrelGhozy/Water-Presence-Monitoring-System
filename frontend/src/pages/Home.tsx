@@ -88,7 +88,7 @@ export default function Home() {
           <Card>
             <div className="text-2xl font-bold text-gray-100">
               {provincesWithData > 0
-                ? Math.round(data!.regions.reduce((s, r) => s + r.waterPercentage, 0) / provincesWithData)
+                ? Math.round(data!.regions.reduce((s, r) => s + r.waterIndex, 0) / provincesWithData)
                 : 0}%
             </div>
             <div className="text-sm text-gray-400">Rata-rata Keberadaan Air</div>
@@ -129,11 +129,11 @@ export default function Home() {
                       const mappedName = GEOJSON_PROVINCE_MAP[rawName] || rawName
                       const province = regionsMap.get(mappedName.toLowerCase())
                       return {
-                        fillColor: getConfidenceColor(province?.waterPercentage),
+                        fillColor: getConfidenceColor(province?.waterIndex),
                         weight: 1,
                         opacity: 0.8,
                         color: '#1e293b',
-                        fillOpacity: getFillOpacity(province?.waterPercentage),
+                        fillOpacity: getFillOpacity(province?.waterIndex),
                       }
                     }}
                     onEachFeature={(feature, layer) => {
@@ -141,7 +141,7 @@ export default function Home() {
                       const mappedName = GEOJSON_PROVINCE_MAP[rawName] || rawName
                       const region = regionsMap.get(mappedName.toLowerCase())
                       layer.bindTooltip(
-                        `<b>${rawName}</b><br/>Observasi: ${region?.observationCount ?? 0}<br/>Air: ${region?.waterPercentage !== undefined ? `${region.waterPercentage}%` : 'N/A'}`,
+                        `<b>${rawName}</b><br/>Observasi: ${region?.observationCount ?? 0}<br/>Air: ${region?.waterIndex !== undefined ? `${region.waterIndex}%` : 'N/A'}`,
                         { className: 'bg-gray-900 text-gray-200 border border-gray-700 text-sm' }
                       )
                     }}

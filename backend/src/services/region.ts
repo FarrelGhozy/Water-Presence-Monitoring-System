@@ -12,7 +12,6 @@ export async function getRegionSummary() {
     regions: results.map(r => ({
       province: r.province,
       waterIndex: r.waterIndex,
-      waterPercentage: r.waterPercentage,
       observationCount: r.observationCount,
       lastUpdated: r.lastUpdated,
     })),
@@ -31,7 +30,6 @@ export async function getRegionStats(province: string) {
   return {
     province: region.province,
     waterIndex: region.waterIndex,
-    waterPercentage: region.waterPercentage,
     observationCount: region.observationCount,
     lastUpdated: region.lastUpdated,
     recentObservations: recentObservations.map(o => ({

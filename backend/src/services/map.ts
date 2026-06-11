@@ -14,7 +14,6 @@ export async function getIndonesiaChoropleth() {
       properties: {
         province: r.province,
         waterIndex: r.waterIndex,
-        waterPercentage: r.waterPercentage,
         observationCount: r.observationCount,
         color: getColorForIndex(r.waterIndex),
       },

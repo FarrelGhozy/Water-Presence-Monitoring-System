@@ -22,7 +22,7 @@ function getVerdictLabel(verdict: string): string {
 
 export function ConfidenceGauge({ confidence, verdict }: ConfidenceGaugeProps) {
   const color = getColor(confidence)
-  const rotation = -90 + (confidence / 100) * 180
+  const rotation = 180 + (confidence / 100) * 180
 
   return (
     <div className="flex flex-col items-center">
@@ -46,12 +46,13 @@ export function ConfidenceGauge({ confidence, verdict }: ConfidenceGaugeProps) {
         <line
           x1="100"
           y1="100"
-          x2={100 + 65 * Math.cos((rotation * Math.PI) / 180)}
-          y2={100 + 65 * Math.sin((rotation * Math.PI) / 180)}
+          x2="165"
+          y2="100"
           stroke={color}
           strokeWidth="3"
           strokeLinecap="round"
           className="transition-all duration-1000 ease-out"
+          transform={`rotate(${rotation} 100 100)`}
         />
         <circle cx="100" cy="100" r="6" fill={color} />
       </svg>

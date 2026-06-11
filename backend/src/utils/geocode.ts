@@ -30,20 +30,20 @@ const PROVINCES: Record<string, BBox> = {
   'Kalimantan Selatan': { minLat: -5, maxLat: -1, minLng: 114, maxLng: 117 },
   'Kalimantan Timur': { minLat: -3, maxLat: 3, minLng: 113, maxLng: 119 },
   'Kalimantan Utara': { minLat: 1, maxLat: 5, minLng: 114, maxLng: 118 },
-  Sulawesi: { minLat: -6, maxLat: 2, minLng: 118, maxLng: 122 },
   'Sulawesi Utara': { minLat: 0, maxLat: 5, minLng: 123, maxLng: 127 },
   'Sulawesi Tengah': { minLat: -4, maxLat: 2, minLng: 119, maxLng: 124 },
   'Sulawesi Selatan': { minLat: -7, maxLat: -1, minLng: 118, maxLng: 122 },
   'Sulawesi Tenggara': { minLat: -6, maxLat: -2, minLng: 120, maxLng: 125 },
   Gorontalo: { minLat: 0, maxLat: 2, minLng: 121, maxLng: 124 },
   'Sulawesi Barat': { minLat: -4, maxLat: -1, minLng: 118, maxLng: 120 },
-  Maluku: { minLat: -5, maxLat: -1, minLng: 124, maxLng: 131 },
   'Maluku Utara': { minLat: -3, maxLat: 4, minLng: 124, maxLng: 130 },
-  Papua: { minLat: -8, maxLat: 0, minLng: 131, maxLng: 141 },
   'Papua Barat': { minLat: -5, maxLat: 2, minLng: 128, maxLng: 134 },
   'Papua Selatan': { minLat: -8, maxLat: -4, minLng: 138, maxLng: 141 },
   'Papua Tengah': { minLat: -5, maxLat: -2, minLng: 135, maxLng: 140 },
   'Papua Pegunungan': { minLat: -5, maxLat: -2, minLng: 137, maxLng: 141 },
+  Sulawesi: { minLat: -6, maxLat: 2, minLng: 118, maxLng: 122 },
+  Maluku: { minLat: -5, maxLat: -1, minLng: 124, maxLng: 131 },
+  Papua: { minLat: -8, maxLat: 0, minLng: 131, maxLng: 141 },
 }
 
 export function latLngToProvince(lat: number, lng: number): string | null {

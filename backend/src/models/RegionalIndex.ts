@@ -3,7 +3,6 @@ import { model, Schema } from 'mongoose'
 const RegionalIndexSchema = new Schema({
   province: { type: String, required: true, unique: true },
   waterIndex: { type: Number, default: 0 },
-  waterPercentage: { type: Number, default: 0 },
   observationCount: { type: Number, default: 0 },
   lastUpdated: { type: Date, default: Date.now },
   historicalTrend: [{

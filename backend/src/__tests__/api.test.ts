@@ -220,7 +220,7 @@ describe('Regions', () => {
     regionalModel.find = mock(() => ({
       sort: mock(() => ({
         lean: mock(() => Promise.resolve([
-          { province: 'Jawa Timur', waterIndex: 65, waterPercentage: 40, observationCount: 10, lastUpdated: new Date() },
+          { province: 'Jawa Timur', waterIndex: 65, observationCount: 10, lastUpdated: new Date() },
         ])),
       })),
     }))
@@ -233,7 +233,7 @@ describe('Regions', () => {
 
   test('GET /api/v1/regions/:province/stats returns 200', async () => {
     regionalModel.findOne = mock(() => queryResult({
-      province: 'Jawa Timur', waterIndex: 65, waterPercentage: 40,
+      province: 'Jawa Timur', waterIndex: 65,
       observationCount: 10, lastUpdated: new Date(),
     }))
     observationModel.find = mock(() => ({
@@ -261,7 +261,7 @@ describe('Map', () => {
     regionalModel.find = mock(() => ({
       sort: mock(() => ({
         lean: mock(() => Promise.resolve([
-          { province: 'Jawa Timur', waterIndex: 65, waterPercentage: 40, observationCount: 10 },
+          { province: 'Jawa Timur', waterIndex: 65, observationCount: 10 },
         ])),
       })),
     }))

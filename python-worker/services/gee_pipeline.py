@@ -1,19 +1,41 @@
 from datetime import datetime, timezone
+from hashlib import md5
 
 import ee
 
-MOCK_RESULT = {
-    "sar": {"waterPercentage": 45.2, "backscatterMean": -18.5, "confidence": "high"},
-    "ndwi": {"value": 0.12, "available": True, "cloudCover": 15},
-    "chirps": {"rainfall7day_mm": 120.5, "trend": "increasing"},
-    "soil": {"type": "clay"},
-    "elevation": {"meters": 85.0, "terrain": "hilly"},
-}
+USDA_SOIL_TYPES = [
+    "clay", "silty clay", "silty clay loam", "silt loam",
+    "silt", "loam", "sandy clay", "sandy clay loam",
+    "sandy loam", "loamy sand", "sand", "organic",
+]
+
+TERRAIN_TYPES = ["flat", "hilly", "mountainous"]
+
+
+def _mock_result(lat: float, lng: float) -> dict:
+    seed = int(md5(f"{lat:.4f},{lng:.4f}".encode()).hexdigest(), 16)
+    soil_idx = seed % len(USDA_SOIL_TYPES)
+    terrain_idx = (seed // 100) % 3
+    elev_base = (seed // 10) % 300
+    water_pct = ((seed // 1000) % 60) + 10
+    rainfall = ((seed // 10000) % 200) + 20
+    trends = ["increasing", "stable", "decreasing"]
+
+    sar_conf = "high" if water_pct > 30 else "medium"
+    ndwi_val = round((water_pct / 100) * 0.5 - 0.2, 3)
+
+    return {
+        "sar": {"waterPercentage": float(water_pct), "backscatterMean": round(-15 - (water_pct / 10), 1), "confidence": sar_conf},
+        "ndwi": {"value": ndwi_val, "available": True, "cloudCover": (seed // 100000) % 40},
+        "chirps": {"rainfall7day_mm": float(rainfall), "trend": trends[(seed // 1000000) % 3]},
+        "soil": {"type": USDA_SOIL_TYPES[soil_idx]},
+        "elevation": {"meters": float(elev_base), "terrain": TERRAIN_TYPES[terrain_idx]},
+    }
 
 
 def analyze_location(lat: float, lng: float, gee_available: bool = True) -> dict:
     if not gee_available:
-        return dict(MOCK_RESULT)
+        return _mock_result(lat, lng)
 
     point = ee.Geometry.Point([lng, lat])
 
@@ -128,11 +150,6 @@ def _get_chirps_rainfall(point):
 
 
 def _get_soil_type(point):
-    USDA_CLASSES = {
-        1: "clay", 2: "silty clay", 3: "silty clay loam", 4: "silt loam",
-        5: "silt", 6: "loam", 7: "sandy clay", 8: "sandy clay loam",
-        9: "sandy loam", 10: "loamy sand", 11: "sand", 12: "organic",
-    }
     soil = (
         ee.Image("OpenLandMap/SOL/SOL_TEXTURE-CLASS_USDA-TT_M/v02")
         .sample(point, 250, projection='EPSG:4326')
@@ -140,8 +157,10 @@ def _get_soil_type(point):
     )
     if soil:
         code = soil.get("b0").getInfo()
-        if code is not None:
-            return {"type": USDA_CLASSES.get(int(code), f"class_{code}")}
+        if code is not None and 1 <= int(code) <= len(USDA_SOIL_TYPES):
+            return {"type": USDA_SOIL_TYPES[int(code) - 1]}
+        elif code is not None:
+            return {"type": f"class_{code}"}
     return {"type": "unknown"}
 
 

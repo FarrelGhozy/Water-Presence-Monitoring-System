@@ -106,7 +106,7 @@ url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               const mappedName = GEOJSON_PROVINCE_MAP[rawName] || rawName
               const province = regionsMap.get(mappedName.toLowerCase())
               return {
-                fillColor: getConfidenceColor(province?.waterPercentage),
+                fillColor: getConfidenceColor(province?.waterIndex),
                 weight: 1,
                 opacity: 0.8,
                 color: '#1e293b',
@@ -118,7 +118,7 @@ url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               const mappedName = GEOJSON_PROVINCE_MAP[rawName] || rawName
               const region = regionsMap.get(mappedName.toLowerCase())
               layer.bindTooltip(
-                `<b>${rawName}</b><br/>Observasi: ${region?.observationCount ?? 0}<br/>Air: ${region?.waterPercentage !== undefined ? `${region.waterPercentage}%` : 'N/A'}`,
+                `<b>${rawName}</b><br/>Observasi: ${region?.observationCount ?? 0}<br/>Air: ${region?.waterIndex !== undefined ? `${region.waterIndex}%` : 'N/A'}`,
                 { className: 'bg-gray-900 text-gray-200 border border-gray-700' }
               )
             }}
